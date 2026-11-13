@@ -35,6 +35,10 @@
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        details.results-section > summary { list-style: none; cursor: pointer; }
+        details.results-section > summary::-webkit-details-marker { display: none; }
+        details.results-section > summary .chevron { transition: transform 0.15s ease; }
+        details.results-section[open] > summary .chevron { transform: rotate(90deg); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
@@ -175,20 +179,25 @@
                     </div>
                 </div>
 
-                <div id="results" class="hidden glass-panel rounded-2xl p-6 space-y-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-white">Completed</h3>
-                        <p id="completion-summary" class="text-sm text-slate-400 mt-1"></p>
-                        <div id="completion-list" class="mt-3 space-y-2"></div>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-white mb-3">Participants</h3>
-                        <div id="person-picker" class="space-y-2"></div>
-                    </div>
-                    <div id="person-detail" class="hidden space-y-3">
-                        <h3 id="person-detail-title" class="text-lg font-semibold text-white"></h3>
-                        <div id="person-answers" class="space-y-3"></div>
-                    </div>
+                <div id="results" class="hidden space-y-4">
+                    <details id="participants-section" class="results-section glass-panel rounded-2xl p-6" open>
+                        <summary class="flex items-center justify-between gap-4">
+                            <span class="flex items-center gap-2 text-lg font-semibold text-white">
+                                <i class="ph ph-caret-right chevron text-slate-400"></i>
+                                Participants
+                            </span>
+                            <span id="participants-overall" class="text-sm shrink-0"></span>
+                        </summary>
+                        <p id="completion-summary" class="text-sm text-slate-400 mt-4"></p>
+                        <div id="person-picker" class="mt-3 space-y-2"></div>
+                    </details>
+                    <details id="questions-section" class="results-section glass-panel rounded-2xl p-6" open>
+                        <summary class="flex items-center gap-2 text-lg font-semibold text-white">
+                            <i class="ph ph-caret-right chevron text-slate-400"></i>
+                            Poll questions
+                        </summary>
+                        <div id="question-results" class="mt-4 space-y-2"></div>
+                    </details>
                 </div>
 
                 <div class="glass-panel rounded-2xl p-6 border border-slate-700/50 flex-grow mb-8">
@@ -235,6 +244,8 @@
         let createdByMe = false;
         let viewIndex = 0;
         let selectedPerson = null;
+        let participantsOpen = true;
+        let questionsOpen = true;
         let source = null;
         let seen = new Set();
         let ops = [];
@@ -584,10 +595,33 @@
             return { trues, falses };
         }
 
+        function countPair(trues, falses) {
+            const counts = document.createElement("span");
+            counts.className = "text-sm shrink-0 text-right";
+            const trueLabel = document.createElement("span");
+            trueLabel.className = "text-green-400 font-semibold";
+            trueLabel.textContent = "True " + trues;
+            const falseLabel = document.createElement("span");
+            falseLabel.className = "text-red-400 font-semibold ml-4";
+            falseLabel.textContent = "False " + falses;
+            counts.append(trueLabel, falseLabel);
+            return counts;
+        }
+
+        function rememberSectionState() {
+            const participants = document.getElementById("participants-section");
+            const questions = document.getElementById("questions-section");
+            if (participants) participantsOpen = participants.open;
+            if (questions) questionsOpen = questions.open;
+        }
+
         function renderResults(lines, visible) {
             const panel = document.getElementById("results");
+            rememberSectionState();
             panel.classList.toggle("hidden", !visible);
             if (visible) panel.parentElement.insertBefore(panel, document.getElementById("phase-banner").nextSibling);
+            document.getElementById("participants-section").open = participantsOpen;
+            document.getElementById("questions-section").open = questionsOpen;
             if (!visible) {
                 selectedPerson = null;
                 return;
@@ -597,82 +631,77 @@
                 .filter(([id]) => id !== state.adminId)
                 .sort((a, b) => a[1].at - b[1].at);
             const completed = participants.filter(([id]) => state.submitted[id]);
+            const overall = participants.reduce((sum, [id]) => {
+                const totals = voteTotals(id, lines);
+                sum.trues += totals.trues;
+                sum.falses += totals.falses;
+                return sum;
+            }, { trues: 0, falses: 0 });
+            document.getElementById("participants-overall").replaceChildren(countPair(overall.trues, overall.falses));
             document.getElementById("completion-summary").textContent = participants.length
                 ? completed.length + " of " + participants.length + " participants submitted"
                 : "No participants have joined yet.";
-
-            const completion = document.getElementById("completion-list");
-            completion.replaceChildren();
-            for (const [id, person] of participants) {
-                const done = Boolean(state.submitted[id]);
-                const row = document.createElement("div");
-                row.className = "flex items-center justify-between bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-3";
-                const name = document.createElement("span");
-                name.className = "text-sm text-white font-medium";
-                name.textContent = person.name;
-                const status = document.createElement("span");
-                status.className = "text-xs font-semibold " + (done ? "text-green-400" : "text-amber-400");
-                status.textContent = done ? "Submitted" : "Not submitted";
-                row.append(name, status);
-                completion.appendChild(row);
-            }
 
             if (selectedPerson && !state.users[selectedPerson]) selectedPerson = null;
             const picker = document.getElementById("person-picker");
             picker.replaceChildren();
             for (const [id, person] of participants) {
                 const totals = voteTotals(id, lines);
+                const wrap = document.createElement("div");
+                wrap.className = "rounded-xl border " + (id === selectedPerson ? "border-indigo-500 bg-indigo-600/10" : "border-slate-700 bg-slate-900/70");
                 const button = document.createElement("button");
                 button.type = "button";
-                button.className = "w-full flex items-center justify-between gap-3 text-left rounded-xl px-4 py-3 border " +
-                    (id === selectedPerson ? "bg-indigo-600/20 border-indigo-500" : "bg-slate-900/70 border-slate-700 hover:border-indigo-500");
+                button.className = "w-full flex items-center justify-between gap-4 text-left px-4 py-3";
                 const name = document.createElement("span");
                 name.className = "text-sm text-white font-semibold";
                 name.textContent = person.name;
-                const counts = document.createElement("span");
-                counts.className = "text-xs shrink-0";
-                const trueLabel = document.createElement("span");
-                trueLabel.className = "text-green-400 font-semibold";
-                trueLabel.textContent = totals.trues + " true";
-                const falseLabel = document.createElement("span");
-                falseLabel.className = "text-red-400 font-semibold";
-                falseLabel.textContent = totals.falses + " false";
-                counts.append(trueLabel, document.createTextNode(" · "), falseLabel);
-                button.append(name, counts);
+                button.append(name, countPair(totals.trues, totals.falses));
                 button.addEventListener("click", () => {
+                    rememberSectionState();
                     selectedPerson = selectedPerson === id ? null : id;
                     render();
                 });
-                picker.appendChild(button);
+                wrap.appendChild(button);
+                if (id === selectedPerson) {
+                    const answers = document.createElement("div");
+                    answers.className = "space-y-2 px-4 pb-4";
+                    lines.forEach((line, index) => {
+                        const choice = state.votes[index]?.[id];
+                        const block = document.createElement("div");
+                        block.className = "bg-slate-950/60 border border-slate-700 rounded-xl p-3";
+                        const title = document.createElement("p");
+                        title.className = "text-sm text-slate-200";
+                        title.textContent = (index + 1) + ". " + line;
+                        const value = document.createElement("p");
+                        value.className = "mt-1 text-sm font-semibold " + (choice?.value === "False" ? "text-red-400" : choice?.value === "True" ? "text-green-400" : "text-slate-500");
+                        value.textContent = choice?.value === "True" ? "True" : choice?.value === "False" ? "False" : "No vote";
+                        block.append(title, value);
+                        if (choice?.comment) {
+                            const note = document.createElement("p");
+                            note.className = "mt-1 text-sm text-slate-300";
+                            note.textContent = choice.comment;
+                            block.appendChild(note);
+                        }
+                        answers.appendChild(block);
+                    });
+                    wrap.appendChild(answers);
+                }
+                picker.appendChild(wrap);
             }
 
-            const detail = document.getElementById("person-detail");
-            const answers = document.getElementById("person-answers");
-            answers.replaceChildren();
-            if (!selectedPerson) {
-                detail.classList.add("hidden");
-                return;
-            }
-            detail.classList.remove("hidden");
-            document.getElementById("person-detail-title").textContent = state.users[selectedPerson].name;
+            const questions = document.getElementById("question-results");
+            questions.replaceChildren();
             lines.forEach((line, index) => {
-                const choice = state.votes[index]?.[selectedPerson];
-                const block = document.createElement("div");
-                block.className = "bg-slate-900/70 border border-slate-700 rounded-xl p-4";
+                const votes = Object.values(state.votes[index] || {});
+                const trues = votes.filter((item) => item.value === "True").length;
+                const falses = votes.filter((item) => item.value === "False").length;
+                const row = document.createElement("div");
+                row.className = "flex items-center justify-between gap-4 bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-3";
                 const title = document.createElement("p");
                 title.className = "text-sm text-slate-200";
                 title.textContent = (index + 1) + ". " + line;
-                const value = document.createElement("p");
-                value.className = "mt-2 text-sm font-semibold " + (choice?.value === "False" ? "text-red-400" : choice?.value === "True" ? "text-green-400" : "text-slate-500");
-                value.textContent = choice?.value || "No vote";
-                block.append(title, value);
-                if (choice?.comment) {
-                    const note = document.createElement("p");
-                    note.className = "mt-1 text-sm text-slate-300";
-                    note.textContent = choice.comment;
-                    block.appendChild(note);
-                }
-                answers.appendChild(block);
+                row.append(title, countPair(trues, falses));
+                questions.appendChild(row);
             });
         }
 
