@@ -177,13 +177,16 @@
 
                 <div id="results" class="hidden glass-panel rounded-2xl p-6 space-y-6">
                     <div>
-                        <h3 class="text-lg font-semibold text-white">Overall results</h3>
-                        <p class="text-sm text-slate-400 mt-1">Polling is closed. Open a statement, or read one person's answers.</p>
+                        <h3 class="text-lg font-semibold text-white">Completed</h3>
+                        <p id="completion-summary" class="text-sm text-slate-400 mt-1"></p>
+                        <div id="completion-list" class="mt-3 space-y-2"></div>
                     </div>
-                    <div id="overall-list" class="space-y-3"></div>
                     <div>
-                        <h3 class="text-lg font-semibold text-white mb-3">Individual answers</h3>
-                        <div id="person-picker" class="flex flex-wrap gap-2 mb-4"></div>
+                        <h3 class="text-lg font-semibold text-white mb-3">Participants</h3>
+                        <div id="person-picker" class="space-y-2"></div>
+                    </div>
+                    <div id="person-detail" class="hidden space-y-3">
+                        <h3 id="person-detail-title" class="text-lg font-semibold text-white"></h3>
                         <div id="person-answers" class="space-y-3"></div>
                     </div>
                 </div>
@@ -470,7 +473,7 @@
                 phaseHelp.textContent = admin ? "You can see every vote and reason. Participants cannot." : "Answer each statement, then submit. Only the host can see the votes.";
             } else {
                 phaseLabel.textContent = "Polling is closed";
-                phaseHelp.textContent = admin ? "Review the overall result, then open one person's answers." : "Your answers have been submitted.";
+                phaseHelp.textContent = admin ? "See who submitted, then open a name to read their answers." : "Your answers have been submitted.";
             }
             document.getElementById("start-poll").classList.toggle("hidden", !(admin && phase === "setup"));
             document.getElementById("finish-poll").classList.toggle("hidden", !(admin && phase === "open"));
@@ -570,64 +573,88 @@
             }
         }
 
+        function voteTotals(id, lines) {
+            let trues = 0;
+            let falses = 0;
+            lines.forEach((_, index) => {
+                const value = state.votes[index]?.[id]?.value;
+                if (value === "True") trues += 1;
+                else if (value === "False") falses += 1;
+            });
+            return { trues, falses };
+        }
+
         function renderResults(lines, visible) {
             const panel = document.getElementById("results");
             panel.classList.toggle("hidden", !visible);
-            if (!visible) return;
+            if (visible) panel.parentElement.insertBefore(panel, document.getElementById("phase-banner").nextSibling);
+            if (!visible) {
+                selectedPerson = null;
+                return;
+            }
 
-            const overall = document.getElementById("overall-list");
-            overall.replaceChildren();
-            lines.forEach((line, index) => {
-                const votes = Object.values(state.votes[index] || {}).filter((item) => item.value);
-                const trues = votes.filter((item) => item.value === "True").length;
-                const falses = votes.filter((item) => item.value === "False").length;
-                const total = trues + falses || 1;
-                const row = document.createElement("button");
-                row.type = "button";
-                row.className = "w-full text-left bg-slate-900/70 border border-slate-700 rounded-xl p-4 hover:border-indigo-500";
-                const heading = document.createElement("div");
-                heading.className = "text-sm text-white font-medium";
-                heading.textContent = (index + 1) + ". " + line;
-                const counts = document.createElement("div");
-                counts.className = "text-xs text-slate-400 mt-2";
-                counts.textContent = trues + " true · " + falses + " false";
-                const bar = document.createElement("div");
-                bar.className = "mt-2 h-2 rounded-full bg-slate-800 overflow-hidden flex";
-                const trueBit = document.createElement("div");
-                trueBit.className = "h-full bg-green-500";
-                trueBit.style.width = ((trues / total) * 100) + "%";
-                const falseBit = document.createElement("div");
-                falseBit.className = "h-full bg-red-500";
-                falseBit.style.width = ((falses / total) * 100) + "%";
-                bar.append(trueBit, falseBit);
-                row.append(heading, counts, bar);
-                row.addEventListener("click", () => {
-                    viewIndex = index;
-                    render();
-                    document.getElementById("statement-text").scrollIntoView({ behavior: "smooth", block: "center" });
-                });
-                overall.appendChild(row);
-            });
+            const participants = Object.entries(state.users)
+                .filter(([id]) => id !== state.adminId)
+                .sort((a, b) => a[1].at - b[1].at);
+            const completed = participants.filter(([id]) => state.submitted[id]);
+            document.getElementById("completion-summary").textContent = participants.length
+                ? completed.length + " of " + participants.length + " participants submitted"
+                : "No participants have joined yet.";
 
-            const people = Object.entries(state.users).sort((a, b) => a[1].at - b[1].at);
-            if (!selectedPerson || !state.users[selectedPerson]) selectedPerson = people[0]?.[0] || null;
+            const completion = document.getElementById("completion-list");
+            completion.replaceChildren();
+            for (const [id, person] of participants) {
+                const done = Boolean(state.submitted[id]);
+                const row = document.createElement("div");
+                row.className = "flex items-center justify-between bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-3";
+                const name = document.createElement("span");
+                name.className = "text-sm text-white font-medium";
+                name.textContent = person.name;
+                const status = document.createElement("span");
+                status.className = "text-xs font-semibold " + (done ? "text-green-400" : "text-amber-400");
+                status.textContent = done ? "Submitted" : "Not submitted";
+                row.append(name, status);
+                completion.appendChild(row);
+            }
+
+            if (selectedPerson && !state.users[selectedPerson]) selectedPerson = null;
             const picker = document.getElementById("person-picker");
             picker.replaceChildren();
-            for (const [id, person] of people) {
+            for (const [id, person] of participants) {
+                const totals = voteTotals(id, lines);
                 const button = document.createElement("button");
                 button.type = "button";
-                button.className = "px-3 py-1.5 rounded-full text-sm border " + (id === selectedPerson ? "bg-indigo-600 border-indigo-500 text-white" : "bg-slate-900 border-slate-700 text-slate-300");
-                button.textContent = person.name;
+                button.className = "w-full flex items-center justify-between gap-3 text-left rounded-xl px-4 py-3 border " +
+                    (id === selectedPerson ? "bg-indigo-600/20 border-indigo-500" : "bg-slate-900/70 border-slate-700 hover:border-indigo-500");
+                const name = document.createElement("span");
+                name.className = "text-sm text-white font-semibold";
+                name.textContent = person.name;
+                const counts = document.createElement("span");
+                counts.className = "text-xs shrink-0";
+                const trueLabel = document.createElement("span");
+                trueLabel.className = "text-green-400 font-semibold";
+                trueLabel.textContent = totals.trues + " true";
+                const falseLabel = document.createElement("span");
+                falseLabel.className = "text-red-400 font-semibold";
+                falseLabel.textContent = totals.falses + " false";
+                counts.append(trueLabel, document.createTextNode(" · "), falseLabel);
+                button.append(name, counts);
                 button.addEventListener("click", () => {
-                    selectedPerson = id;
+                    selectedPerson = selectedPerson === id ? null : id;
                     render();
                 });
                 picker.appendChild(button);
             }
 
+            const detail = document.getElementById("person-detail");
             const answers = document.getElementById("person-answers");
             answers.replaceChildren();
-            if (!selectedPerson) return;
+            if (!selectedPerson) {
+                detail.classList.add("hidden");
+                return;
+            }
+            detail.classList.remove("hidden");
+            document.getElementById("person-detail-title").textContent = state.users[selectedPerson].name;
             lines.forEach((line, index) => {
                 const choice = state.votes[index]?.[selectedPerson];
                 const block = document.createElement("div");
