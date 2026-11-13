@@ -20,6 +20,7 @@
         .vote-card:active { transform: scale(0.95); }
         .selected-true { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); border-color: #22c55e; }
         .selected-false { box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); border-color: #ef4444; }
+        .template-card.selected { border-color: #818cf8; box-shadow: 0 0 0 1px #818cf8; }
         .picked-user {
             animation: pulse-ring 2s infinite;
             border-color: #fbbf24 !important;
@@ -47,19 +48,23 @@
 
     <div id="app-container" class="flex-grow flex flex-col relative">
         <div id="login-screen" class="absolute inset-0 z-40 flex items-center justify-center p-4 bg-[#0f172a] min-h-screen">
-            <div class="glass-panel p-8 rounded-2xl w-full max-w-md shadow-2xl relative overflow-hidden">
+            <div class="glass-panel p-8 rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
                 <div class="text-center mb-8">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-500/20 text-indigo-400 mb-4">
                         <i class="ph ph-cards text-3xl"></i>
                     </div>
                     <h1 class="text-3xl font-bold text-white tracking-tight">Retro Poker</h1>
-                    <p class="text-slate-400 mt-2 text-sm">Ten True / False statements for the TEPDK retrospective. No account. Anyone with the link can vote.</p>
+                    <p id="login-blurb" class="text-slate-400 mt-2 text-sm">Choose a question template, start the room, then share the invite link. You will be the only person who can see the votes.</p>
                 </div>
                 <div class="space-y-5">
                     <div>
                         <label class="block text-sm font-medium text-slate-300 mb-1.5" for="nickname-input">Your name</label>
                         <input type="text" id="nickname-input" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="e.g. Shibin" maxlength="40">
+                    </div>
+                    <div id="template-picker" class="space-y-2">
+                        <p class="text-sm font-medium text-slate-300">Question template</p>
+                        <div id="template-list" class="space-y-2"></div>
                     </div>
                     <button id="join-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2">
                         <span id="join-btn-text">Create session</span>
@@ -70,7 +75,7 @@
         </div>
 
         <div id="poker-screen" class="hidden flex-col h-full w-full max-w-6xl mx-auto p-4 md:p-6 lg:p-8">
-            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 glass-panel p-4 rounded-2xl">
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 glass-panel p-4 rounded-2xl">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/40">
                         <i class="ph ph-cards text-xl text-white"></i>
@@ -79,6 +84,7 @@
                         <h2 class="text-lg font-bold text-white leading-tight">TEPDK Retro</h2>
                         <div class="flex items-center gap-2 text-xs font-medium text-slate-400">
                             <span class="flex items-center gap-1"><i class="ph ph-hash"></i><span id="display-session-id">...</span></span>
+                            <span id="role-badge" class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">Participant</span>
                             <span id="live-status" class="text-amber-400">Connecting</span>
                         </div>
                     </div>
@@ -89,7 +95,27 @@
                 </button>
             </header>
 
+            <div id="invite-panel" class="hidden glass-panel rounded-2xl p-4 mb-6 border border-indigo-500/40">
+                <p class="text-sm font-medium text-indigo-300 mb-2">Invite link</p>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input id="invite-url" readonly class="flex-grow bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-200">
+                    <button id="copy-link-inline" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-xl">Copy</button>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">Anyone with this link can vote. Only you can see their votes and reasons.</p>
+            </div>
+
             <div class="flex-grow flex flex-col gap-6">
+                <div id="phase-banner" class="glass-panel rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                        <p id="phase-label" class="text-white font-semibold">Waiting to start</p>
+                        <p id="phase-help" class="text-sm text-slate-400 mt-1">Start polling when the room is ready.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="start-poll" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-5 rounded-xl">Start polling</button>
+                        <button id="finish-poll" class="hidden bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 px-5 rounded-xl">Finish polling</button>
+                    </div>
+                </div>
+
                 <div class="glass-panel rounded-2xl p-6 relative border border-slate-700/50">
                     <div class="absolute -top-3 left-6 bg-slate-800 px-3 py-0.5 rounded-full text-xs font-semibold text-indigo-400 border border-slate-700 flex items-center gap-1.5">
                         <i class="ph ph-chat-centered-text"></i>
@@ -100,24 +126,24 @@
                         <button id="prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
                             <i class="ph ph-caret-left"></i> Previous
                         </button>
-                        <p class="text-xs text-slate-500">Same statement for everyone in this room</p>
+                        <p id="pace-note" class="text-xs text-slate-500 text-center">Move at your own pace. The template is the same for the whole room.</p>
                         <button id="next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
                             Next <i class="ph ph-caret-right"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button id="btn-true" class="vote-card group relative overflow-hidden rounded-2xl border-2 border-slate-700 bg-slate-800/50 p-8 flex flex-col items-center justify-center gap-3 hover:bg-slate-800 hover:border-green-500/50">
+                <div id="vote-row" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="btn-true" class="vote-card group relative overflow-hidden rounded-2xl border-2 border-slate-700 bg-slate-800/50 p-8 flex flex-col items-center justify-center gap-3 hover:bg-slate-800 hover:border-green-500/50 disabled:opacity-40">
                         <div class="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-green-500 group-hover:scale-110 transition-transform group-hover:bg-green-500/20">
+                        <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-green-500">
                             <i class="ph-fill ph-check-circle text-4xl"></i>
                         </div>
                         <span class="text-2xl font-bold text-white tracking-wide">TRUE</span>
                     </button>
-                    <button id="btn-false" class="vote-card group relative overflow-hidden rounded-2xl border-2 border-slate-700 bg-slate-800/50 p-8 flex flex-col items-center justify-center gap-3 hover:bg-slate-800 hover:border-red-500/50">
+                    <button id="btn-false" class="vote-card group relative overflow-hidden rounded-2xl border-2 border-slate-700 bg-slate-800/50 p-8 flex flex-col items-center justify-center gap-3 hover:bg-slate-800 hover:border-red-500/50 disabled:opacity-40">
                         <div class="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform group-hover:bg-red-500/20">
+                        <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-red-500">
                             <i class="ph-fill ph-x-circle text-4xl"></i>
                         </div>
                         <span class="text-2xl font-bold text-white tracking-wide">FALSE</span>
@@ -130,7 +156,8 @@
                 </div>
 
                 <div id="chart" class="hidden glass-panel rounded-2xl p-6">
-                    <h3 class="text-sm font-semibold text-slate-300 mb-4">This statement</h3>
+                    <h3 class="text-sm font-semibold text-slate-300 mb-1">Votes on this statement</h3>
+                    <p class="text-xs text-slate-500 mb-4">Visible only to the host.</p>
                     <div class="space-y-3">
                         <div>
                             <div class="flex justify-between text-sm mb-1"><span class="text-green-400 font-semibold">True</span><span id="true-count" class="text-slate-300">0</span></div>
@@ -143,16 +170,17 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-center gap-4 py-2">
-                    <button id="btn-reveal" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-8 rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center gap-2">
-                        <i class="ph ph-eye text-lg"></i> <span id="reveal-text">Reveal votes</span>
-                    </button>
-                    <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium py-3 px-6 rounded-xl border border-slate-700 transition-all flex items-center gap-2">
-                        <i class="ph ph-arrow-counter-clockwise text-lg"></i> Reset this statement
-                    </button>
-                    <button id="btn-pick" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2">
-                        <i class="ph ph-target text-lg"></i> Pick participant to speak
-                    </button>
+                <div id="results" class="hidden glass-panel rounded-2xl p-6 space-y-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-white">Overall results</h3>
+                        <p class="text-sm text-slate-400 mt-1">Polling is closed. Open a statement, or read one person's answers.</p>
+                    </div>
+                    <div id="overall-list" class="space-y-3"></div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-3">Individual answers</h3>
+                        <div id="person-picker" class="flex flex-wrap gap-2 mb-4"></div>
+                        <div id="person-answers" class="space-y-3"></div>
+                    </div>
                 </div>
 
                 <div class="glass-panel rounded-2xl p-6 border border-slate-700/50 flex-grow mb-8">
@@ -169,17 +197,24 @@
     </div>
 
     <script>
-        const STATEMENTS = [
-            "I believe that training has been provided sufficient for CDF deployment of TEPDK",
-            "We know what done looks like for TEPDK",
-            "A reference example or template was available, and I knew where to find it.",
-            "Deploying through Toolkit and a pipeline felt like the faster way to deliver, not the slower one.",
-            "Timelines gave us room to do things the right way, not just get data in by milestones.",
-            "Someone in the workstreams reviews technical work before it reaches Cognite / Total Energies.",
-            "When we're stuck, we know who to ask at Cognite and get answers quickly.",
-            "Work starts when its prerequisites (data, parameters, analysis) are ready.",
-            "When advice is given, we either apply it or it is clear there are good reasons not to.",
-            "When we solve a problem, the lesson is written down where the next person will find it."
+        const TEMPLATES = [
+            {
+                id: "tepdk-retro",
+                name: "TEPDK retrospective",
+                description: "The same ten True / False statements for every host.",
+                statements: [
+                    "I believe that training has been provided sufficient for CDF deployment of TEPDK",
+                    "We know what done looks like for TEPDK",
+                    "A reference example or template was available, and I knew where to find it.",
+                    "Deploying through Toolkit and a pipeline felt like the faster way to deliver, not the slower one.",
+                    "Timelines gave us room to do things the right way, not just get data in by milestones.",
+                    "Someone in the workstreams reviews technical work before it reaches Cognite / Total Energies.",
+                    "When we're stuck, we know who to ask at Cognite and get answers quickly.",
+                    "Work starts when its prerequisites (data, parameters, analysis) are ready.",
+                    "When advice is given, we either apply it or it is clear there are good reasons not to.",
+                    "When we solve a problem, the lesson is written down where the next person will find it."
+                ]
+            }
         ];
 
         const ME = localStorage.getItem("retro-me") || crypto.randomUUID();
@@ -188,6 +223,10 @@
         const params = new URLSearchParams(location.search);
         let room = params.get("room");
         let myName = sessionStorage.getItem("retro-name") || "";
+        let selectedTemplate = TEMPLATES[0].id;
+        let createdByMe = false;
+        let viewIndex = 0;
+        let selectedPerson = null;
         let source = null;
         let seen = new Set();
         let ops = [];
@@ -199,9 +238,15 @@
         const nicknameInput = document.getElementById("nickname-input");
         const joinBtn = document.getElementById("join-btn");
         const joinBtnText = document.getElementById("join-btn-text");
+        const templatePicker = document.getElementById("template-picker");
 
-        if (room) joinBtnText.textContent = "Join session";
+        if (room) {
+            joinBtnText.textContent = "Join session";
+            templatePicker.classList.add("hidden");
+            document.getElementById("login-blurb").textContent = "You're joining a room. The host already chose the questions.";
+        }
         if (myName) nicknameInput.value = myName;
+        renderTemplateChoices();
         nicknameInput.focus();
 
         nicknameInput.addEventListener("keydown", (event) => {
@@ -212,17 +257,47 @@
         document.getElementById("btn-false").addEventListener("click", () => castVote("False"));
         document.getElementById("prev-btn").addEventListener("click", () => move(-1));
         document.getElementById("next-btn").addEventListener("click", () => move(1));
-        document.getElementById("btn-reveal").addEventListener("click", toggleReveal);
-        document.getElementById("btn-reset").addEventListener("click", resetStatement);
-        document.getElementById("btn-pick").addEventListener("click", pickParticipant);
+        document.getElementById("start-poll").addEventListener("click", () => send({ t: "phase", phase: "open", id: ME }));
+        document.getElementById("finish-poll").addEventListener("click", () => send({ t: "phase", phase: "closed", id: ME }));
         document.getElementById("copy-link").addEventListener("click", copyInviteLink);
+        document.getElementById("copy-link-inline").addEventListener("click", copyInviteLink);
         document.getElementById("comment-input").addEventListener("input", () => {
             clearTimeout(commentTimer);
-            commentTimer = setTimeout(syncComment, 500);
+            const index = viewIndex;
+            commentTimer = setTimeout(() => syncComment(index), 500);
         });
 
         function emptyState() {
-            return { users: {}, votes: {}, index: 0, revealed: {}, picked: null, controlAt: {} };
+            return { users: {}, votes: {}, adminId: null, templateId: null, phase: "setup", phaseAt: 0, controlAt: {} };
+        }
+
+        function renderTemplateChoices() {
+            const list = document.getElementById("template-list");
+            list.replaceChildren();
+            for (const template of TEMPLATES) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "template-card w-full text-left bg-slate-900 border border-slate-700 rounded-xl p-4 " + (template.id === selectedTemplate ? "selected" : "");
+                const title = document.createElement("div");
+                title.className = "text-white font-semibold";
+                title.textContent = template.name;
+                const detail = document.createElement("div");
+                detail.className = "text-sm text-slate-400 mt-1";
+                detail.textContent = template.description + " " + template.statements.length + " statements.";
+                const preview = document.createElement("ol");
+                preview.className = "mt-3 space-y-1 text-xs text-slate-500 list-decimal list-inside";
+                template.statements.forEach((line) => {
+                    const item = document.createElement("li");
+                    item.textContent = line;
+                    preview.appendChild(item);
+                });
+                button.append(title, detail, preview);
+                button.addEventListener("click", () => {
+                    selectedTemplate = template.id;
+                    renderTemplateChoices();
+                });
+                list.appendChild(button);
+            }
         }
 
         function joinOrCreate() {
@@ -233,8 +308,10 @@
             }
             myName = name;
             sessionStorage.setItem("retro-name", name);
-            if (!room) {
+            const creating = !room;
+            if (creating) {
                 room = "rp" + crypto.randomUUID().replaceAll("-", "");
+                createdByMe = true;
                 const url = new URL(location.href);
                 url.searchParams.set("room", room);
                 history.replaceState(null, "", url);
@@ -245,9 +322,13 @@
             pokerScreen.classList.remove("hidden");
             pokerScreen.classList.add("flex");
             document.getElementById("display-session-id").textContent = room.slice(-6).toUpperCase();
+            const invite = document.getElementById("invite-url");
+            invite.value = location.href;
+            document.getElementById("invite-panel").classList.toggle("hidden", !creating);
             render();
             connect();
-            send({ t: "join", id: ME, name: myName });
+            if (creating) send({ t: "create", id: ME, name: myName, template: selectedTemplate });
+            else send({ t: "join", id: ME, name: myName });
         }
 
         function connect() {
@@ -293,100 +374,129 @@
             const next = emptyState();
             const ordered = ops.slice().sort((a, b) => a.at - b.at);
             for (const op of ordered) {
-                if (op.t === "join" && op.id && op.name) {
+                if ((op.t === "create" || op.t === "join") && op.id && op.name) {
                     next.users[op.id] = { name: String(op.name).slice(0, 40), at: op.at };
-                } else if (op.t === "nav" && Number.isInteger(op.i) && op.at >= (next.controlAt.nav || 0)) {
-                    next.index = clampIndex(op.i);
-                    next.controlAt.nav = op.at;
-                } else if (op.t === "reveal" && Number.isInteger(op.i) && op.at >= (next.controlAt["r" + op.i] || 0)) {
-                    next.revealed[op.i] = Boolean(op.on);
-                    next.controlAt["r" + op.i] = op.at;
-                } else if (op.t === "pick" && op.at >= (next.controlAt.pick || 0)) {
-                    next.picked = op.uid || null;
-                    next.controlAt.pick = op.at;
-                } else if (op.t === "reset" && Number.isInteger(op.i)) {
+                    if (op.t === "create" && !next.adminId) {
+                        next.adminId = op.id;
+                        next.templateId = TEMPLATES.some((item) => item.id === op.template) ? op.template : TEMPLATES[0].id;
+                    }
+                } else if (op.t === "phase" && (op.phase === "open" || op.phase === "closed") && op.at >= next.phaseAt) {
+                    if (!next.adminId || op.id !== next.adminId) continue;
+                    if (next.phase === "setup" && op.phase === "open") next.phase = "open";
+                    else if (next.phase === "open" && op.phase === "closed") next.phase = "closed";
+                    else continue;
+                    next.phaseAt = op.at;
+                } else if (op.t === "reset" && Number.isInteger(op.i) && next.phase === "open") {
                     next.votes[op.i] = {};
                     next.controlAt["x" + op.i] = op.at;
-                    next.revealed[op.i] = false;
-                    next.picked = null;
                 } else if (op.t === "vote" && op.id && Number.isInteger(op.i)) {
+                    if (next.phase !== "open") continue;
                     const resetAt = next.controlAt["x" + op.i] || 0;
-                    if (op.at >= resetAt) {
-                        next.votes[op.i] = next.votes[op.i] || {};
-                        const current = next.votes[op.i][op.id];
-                        if (!current || op.at >= current.at) {
-                            next.votes[op.i][op.id] = {
-                                value: op.value === "True" || op.value === "False" ? op.value : null,
-                                comment: String(op.comment || "").slice(0, 500),
-                                at: op.at
-                            };
-                        }
+                    if (op.at < resetAt) continue;
+                    next.votes[op.i] = next.votes[op.i] || {};
+                    const current = next.votes[op.i][op.id];
+                    if (!current || op.at >= current.at) {
+                        next.votes[op.i][op.id] = {
+                            value: op.value === "True" || op.value === "False" ? op.value : null,
+                            comment: String(op.comment || "").slice(0, 500),
+                            at: op.at
+                        };
                     }
                 }
             }
             state = next;
+            const lines = statements();
+            if (viewIndex > lines.length - 1) viewIndex = 0;
             render();
         }
 
-        function clampIndex(index) {
-            return Math.max(0, Math.min(STATEMENTS.length - 1, index));
+        function statements() {
+            const id = state.templateId || selectedTemplate;
+            return (TEMPLATES.find((item) => item.id === id) || TEMPLATES[0]).statements;
         }
 
-        function myVote() {
-            return state.votes[state.index]?.[ME] || null;
+        function isAdmin() {
+            return state.adminId === ME || (createdByMe && !state.adminId);
+        }
+
+        function myVote(index = viewIndex) {
+            return state.votes[index]?.[ME] || null;
         }
 
         function render() {
-            const index = clampIndex(state.index || 0);
-            const revealed = Boolean(state.revealed[index]);
-            document.getElementById("statement-count").textContent = "Statement " + (index + 1) + " of " + STATEMENTS.length;
-            document.getElementById("statement-text").textContent = STATEMENTS[index];
+            const lines = statements();
+            const index = Math.max(0, Math.min(lines.length - 1, viewIndex));
+            viewIndex = index;
+            const admin = isAdmin();
+            const phase = state.phase;
+            const votingOpen = phase === "open";
+
+            document.getElementById("statement-count").textContent = "Statement " + (index + 1) + " of " + lines.length;
+            document.getElementById("statement-text").textContent = lines[index];
             document.getElementById("prev-btn").disabled = index === 0;
-            document.getElementById("next-btn").disabled = index === STATEMENTS.length - 1;
+            document.getElementById("next-btn").disabled = index === lines.length - 1;
+
+            const role = document.getElementById("role-badge");
+            role.textContent = admin ? "Host" : "Participant";
+            role.className = "px-2 py-0.5 rounded-full " + (admin ? "bg-indigo-500/20 text-indigo-300" : "bg-slate-800 text-slate-300");
+
+            const phaseLabel = document.getElementById("phase-label");
+            const phaseHelp = document.getElementById("phase-help");
+            if (phase === "setup") {
+                phaseLabel.textContent = "Waiting to start";
+                phaseHelp.textContent = admin ? "Share the invite link, then start polling." : "The host has not started polling yet.";
+            } else if (phase === "open") {
+                phaseLabel.textContent = "Polling is open";
+                phaseHelp.textContent = admin ? "You can see every vote and reason. Participants cannot." : "Answer each statement. Only the host can see the votes.";
+            } else {
+                phaseLabel.textContent = "Polling is closed";
+                phaseHelp.textContent = admin ? "Review the overall result, then open one person's answers." : "Your answers have been submitted.";
+            }
+            document.getElementById("start-poll").classList.toggle("hidden", !(admin && phase === "setup"));
+            document.getElementById("finish-poll").classList.toggle("hidden", !(admin && phase === "open"));
 
             const vote = myVote();
+            document.getElementById("btn-true").disabled = !votingOpen;
+            document.getElementById("btn-false").disabled = !votingOpen;
             document.getElementById("btn-true").classList.toggle("selected-true", vote?.value === "True");
             document.getElementById("btn-false").classList.toggle("selected-false", vote?.value === "False");
+            document.getElementById("vote-row").classList.toggle("hidden", !votingOpen);
+            document.getElementById("invite-panel").classList.toggle("hidden", !admin);
+            if (room) document.getElementById("invite-url").value = location.href;
 
             const commentWrap = document.getElementById("comment-wrap");
             const commentInput = document.getElementById("comment-input");
-            commentWrap.classList.toggle("hidden", !vote?.value);
+            commentWrap.classList.toggle("hidden", !votingOpen || !vote?.value);
+            commentInput.disabled = !votingOpen;
             if (document.activeElement !== commentInput) commentInput.value = vote?.comment || "";
 
+            const showVotes = admin && phase !== "setup";
             const votes = Object.values(state.votes[index] || {}).filter((item) => item.value);
             const trues = votes.filter((item) => item.value === "True").length;
             const falses = votes.filter((item) => item.value === "False").length;
-            const chart = document.getElementById("chart");
-            chart.classList.toggle("hidden", !revealed);
+            document.getElementById("chart").classList.toggle("hidden", !showVotes);
             const totalVotes = trues + falses;
             document.getElementById("true-count").textContent = String(trues);
             document.getElementById("false-count").textContent = String(falses);
             document.getElementById("true-bar").style.width = (totalVotes ? (trues / totalVotes) * 100 : 0) + "%";
             document.getElementById("false-bar").style.width = (totalVotes ? (falses / totalVotes) * 100 : 0) + "%";
 
-            const revealText = document.getElementById("reveal-text");
-            revealText.textContent = revealed ? "Hide votes" : "Reveal votes";
+            renderPeople(lines, index, admin, showVotes);
+            renderResults(lines, admin && phase === "closed");
+        }
 
+        function renderPeople(lines, index, admin, showVotes) {
             const people = Object.entries(state.users).sort((a, b) => a[1].at - b[1].at);
-            const voted = people.filter(([id]) => state.votes[index]?.[id]?.value).length;
-            document.getElementById("voter-count").textContent = voted + "/" + people.length + " voted";
-
+            const votedHere = people.filter(([id]) => state.votes[index]?.[id]?.value).length;
+            document.getElementById("voter-count").textContent = votedHere + "/" + people.length + " voted on this statement";
             const grid = document.getElementById("participants-grid");
             grid.replaceChildren();
             for (const [id, person] of people) {
                 const card = document.createElement("div");
                 const mine = id === ME;
-                const picked = id === state.picked;
                 const choice = state.votes[index]?.[id];
-                card.className = "relative bg-slate-800/80 border rounded-xl p-4 flex flex-col items-center justify-center gap-3 " +
-                    (picked ? "border-amber-400 picked-user scale-105 z-10" : mine ? "border-indigo-500/50" : "border-slate-700");
-
-                if (picked) {
-                    const badge = document.createElement("div");
-                    badge.className = "absolute -top-3 -right-3 bg-amber-500 text-white p-1.5 rounded-full shadow-lg";
-                    badge.innerHTML = '<i class="ph-fill ph-microphone-stage text-lg"></i>';
-                    card.appendChild(badge);
-                }
+                const answered = lines.filter((_, statement) => state.votes[statement]?.[id]?.value).length;
+                card.className = "relative bg-slate-800/80 border rounded-xl p-4 flex flex-col items-center justify-center gap-3 " + (mine ? "border-indigo-500/50" : "border-slate-700");
 
                 const avatar = document.createElement("div");
                 avatar.className = "w-12 h-12 rounded-full flex items-center justify-center shadow-inner text-white font-bold text-lg " + (mine ? "bg-indigo-600" : "bg-slate-700");
@@ -395,34 +505,34 @@
 
                 const name = document.createElement("h4");
                 name.className = "text-slate-200 font-semibold truncate text-sm px-1 text-center w-full";
-                name.textContent = person.name + (mine ? " (You)" : "");
+                name.textContent = person.name + (mine ? " (You)" : "") + (id === state.adminId ? " · Host" : "");
                 card.appendChild(name);
 
-                const status = document.createElement("div");
-                status.className = "w-full flex justify-center";
+                const progress = document.createElement("p");
+                progress.className = "text-[11px] text-slate-500";
+                progress.textContent = answered + "/" + lines.length + " answered";
+                card.appendChild(progress);
+
                 const pill = document.createElement("div");
-                if (!revealed) {
-                    if (choice?.value) {
-                        pill.className = "bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-lg text-sm font-bold";
-                        pill.textContent = "Voted";
-                    } else {
-                        pill.className = "bg-slate-900 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-sm";
-                        pill.textContent = "Thinking";
-                    }
-                } else if (choice?.value === "True") {
+                if (showVotes && choice?.value === "True") {
                     pill.className = "bg-green-500 text-white px-4 py-1.5 rounded-lg text-base font-bold w-full text-center";
                     pill.textContent = "TRUE";
-                } else if (choice?.value === "False") {
+                } else if (showVotes && choice?.value === "False") {
                     pill.className = "bg-red-500 text-white px-4 py-1.5 rounded-lg text-base font-bold w-full text-center";
                     pill.textContent = "FALSE";
+                } else if (choice?.value && mine) {
+                    pill.className = (choice.value === "True" ? "bg-green-500" : "bg-red-500") + " text-white px-4 py-1.5 rounded-lg text-base font-bold w-full text-center";
+                    pill.textContent = choice.value.toUpperCase();
+                } else if (choice?.value) {
+                    pill.className = "bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-lg text-sm font-bold";
+                    pill.textContent = "Voted";
                 } else {
-                    pill.className = "bg-slate-900 text-slate-500 border border-slate-700 px-3 py-1 rounded-lg text-sm w-full text-center";
-                    pill.textContent = "No vote";
+                    pill.className = "bg-slate-900 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-sm";
+                    pill.textContent = "Waiting";
                 }
-                status.appendChild(pill);
-                card.appendChild(status);
+                card.appendChild(pill);
 
-                if (revealed && choice?.comment) {
+                if (showVotes && choice?.comment) {
                     const note = document.createElement("p");
                     note.className = "text-xs text-slate-300 text-center leading-snug";
                     note.textContent = choice.comment;
@@ -432,60 +542,126 @@
             }
         }
 
+        function renderResults(lines, visible) {
+            const panel = document.getElementById("results");
+            panel.classList.toggle("hidden", !visible);
+            if (!visible) return;
+
+            const overall = document.getElementById("overall-list");
+            overall.replaceChildren();
+            lines.forEach((line, index) => {
+                const votes = Object.values(state.votes[index] || {}).filter((item) => item.value);
+                const trues = votes.filter((item) => item.value === "True").length;
+                const falses = votes.filter((item) => item.value === "False").length;
+                const total = trues + falses || 1;
+                const row = document.createElement("button");
+                row.type = "button";
+                row.className = "w-full text-left bg-slate-900/70 border border-slate-700 rounded-xl p-4 hover:border-indigo-500";
+                const heading = document.createElement("div");
+                heading.className = "text-sm text-white font-medium";
+                heading.textContent = (index + 1) + ". " + line;
+                const counts = document.createElement("div");
+                counts.className = "text-xs text-slate-400 mt-2";
+                counts.textContent = trues + " true · " + falses + " false";
+                const bar = document.createElement("div");
+                bar.className = "mt-2 h-2 rounded-full bg-slate-800 overflow-hidden flex";
+                const trueBit = document.createElement("div");
+                trueBit.className = "h-full bg-green-500";
+                trueBit.style.width = ((trues / total) * 100) + "%";
+                const falseBit = document.createElement("div");
+                falseBit.className = "h-full bg-red-500";
+                falseBit.style.width = ((falses / total) * 100) + "%";
+                bar.append(trueBit, falseBit);
+                row.append(heading, counts, bar);
+                row.addEventListener("click", () => {
+                    viewIndex = index;
+                    render();
+                    document.getElementById("statement-text").scrollIntoView({ behavior: "smooth", block: "center" });
+                });
+                overall.appendChild(row);
+            });
+
+            const people = Object.entries(state.users).sort((a, b) => a[1].at - b[1].at);
+            if (!selectedPerson || !state.users[selectedPerson]) selectedPerson = people[0]?.[0] || null;
+            const picker = document.getElementById("person-picker");
+            picker.replaceChildren();
+            for (const [id, person] of people) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "px-3 py-1.5 rounded-full text-sm border " + (id === selectedPerson ? "bg-indigo-600 border-indigo-500 text-white" : "bg-slate-900 border-slate-700 text-slate-300");
+                button.textContent = person.name;
+                button.addEventListener("click", () => {
+                    selectedPerson = id;
+                    render();
+                });
+                picker.appendChild(button);
+            }
+
+            const answers = document.getElementById("person-answers");
+            answers.replaceChildren();
+            if (!selectedPerson) return;
+            lines.forEach((line, index) => {
+                const choice = state.votes[index]?.[selectedPerson];
+                const block = document.createElement("div");
+                block.className = "bg-slate-900/70 border border-slate-700 rounded-xl p-4";
+                const title = document.createElement("p");
+                title.className = "text-sm text-slate-200";
+                title.textContent = (index + 1) + ". " + line;
+                const value = document.createElement("p");
+                value.className = "mt-2 text-sm font-semibold " + (choice?.value === "False" ? "text-red-400" : choice?.value === "True" ? "text-green-400" : "text-slate-500");
+                value.textContent = choice?.value || "No vote";
+                block.append(title, value);
+                if (choice?.comment) {
+                    const note = document.createElement("p");
+                    note.className = "mt-1 text-sm text-slate-300";
+                    note.textContent = choice.comment;
+                    block.appendChild(note);
+                }
+                answers.appendChild(block);
+            });
+        }
+
         function initials(name) {
             const parts = String(name || "?").trim().split(/\s+/).slice(0, 2);
             return parts.map((part) => part[0] || "").join("").toUpperCase() || "?";
         }
 
         function castVote(value) {
+            if (state.phase !== "open") return;
             const current = myVote();
             const nextValue = current?.value === value ? null : value;
             send({
                 t: "vote",
                 id: ME,
-                i: state.index || 0,
+                i: viewIndex,
                 value: nextValue,
                 comment: document.getElementById("comment-input").value.trim()
             });
         }
 
-        function syncComment() {
-            const current = myVote();
-            if (!current?.value) return;
+        function syncComment(index) {
+            const current = myVote(index);
+            if (!current?.value || state.phase !== "open") return;
             send({
                 t: "vote",
                 id: ME,
-                i: state.index || 0,
+                i: index,
                 value: current.value,
                 comment: document.getElementById("comment-input").value.trim()
             });
         }
 
         function move(delta) {
-            send({ t: "nav", i: clampIndex((state.index || 0) + delta) });
-        }
-
-        function toggleReveal() {
-            const index = state.index || 0;
-            send({ t: "reveal", i: index, on: !state.revealed[index] });
-        }
-
-        function resetStatement() {
-            send({ t: "reset", i: state.index || 0 });
-            document.getElementById("comment-input").value = "";
-        }
-
-        function pickParticipant() {
-            const ids = Object.keys(state.users);
-            if (!ids.length) return;
-            const uid = ids[Math.floor(Math.random() * ids.length)];
-            send({ t: "pick", uid });
+            const lines = statements();
+            viewIndex = Math.max(0, Math.min(lines.length - 1, viewIndex + delta));
+            render();
         }
 
         function copyInviteLink() {
             const url = new URL(location.href);
             url.searchParams.set("room", room);
             const text = url.toString();
+            document.getElementById("invite-url").value = text;
             if (navigator.clipboard?.writeText) {
                 navigator.clipboard.writeText(text).then(() => showToast("Invite link copied"));
                 return;
