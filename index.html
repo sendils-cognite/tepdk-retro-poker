@@ -122,15 +122,6 @@
                         <span id="statement-count">Statement 1 of 10</span>
                     </div>
                     <p id="statement-text" class="text-white text-xl md:text-2xl font-medium mt-3 leading-snug"></p>
-                    <div class="flex items-center justify-between mt-6 gap-3">
-                        <button id="prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
-                            <i class="ph ph-caret-left"></i> Previous
-                        </button>
-                        <p id="pace-note" class="text-xs text-slate-500 text-center">Move at your own pace. The template is the same for the whole room.</p>
-                        <button id="next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
-                            Next <i class="ph ph-caret-right"></i>
-                        </button>
-                    </div>
                 </div>
 
                 <div id="vote-row" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -153,6 +144,20 @@
                 <div id="comment-wrap" class="hidden glass-panel rounded-2xl p-4">
                     <label for="comment-input" class="block text-sm font-medium text-slate-300 mb-2">Why did you choose this?</label>
                     <textarea id="comment-input" rows="2" maxlength="500" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Optional if you voted True. Add the reason if you voted False."></textarea>
+                </div>
+
+                <div id="nav-row" class="flex items-center justify-between gap-3">
+                    <button id="prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
+                        <i class="ph ph-caret-left"></i> Previous
+                    </button>
+                    <p id="pace-note" class="text-xs text-slate-500 text-center">Move at your own pace. The template is the same for the whole room.</p>
+                    <button id="next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
+                        Next <i class="ph ph-caret-right"></i>
+                    </button>
+                </div>
+
+                <div id="submit-row" class="hidden justify-center">
+                    <button id="submit-answers" disabled class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-xl shadow-lg shadow-indigo-500/30">Submit answers</button>
                 </div>
 
                 <div id="chart" class="hidden glass-panel rounded-2xl p-6">
@@ -259,6 +264,7 @@
         document.getElementById("next-btn").addEventListener("click", () => move(1));
         document.getElementById("start-poll").addEventListener("click", () => send({ t: "phase", phase: "open", id: ME }));
         document.getElementById("finish-poll").addEventListener("click", () => send({ t: "phase", phase: "closed", id: ME }));
+        document.getElementById("submit-answers").addEventListener("click", submitAnswers);
         document.getElementById("copy-link").addEventListener("click", copyInviteLink);
         document.getElementById("copy-link-inline").addEventListener("click", copyInviteLink);
         document.getElementById("comment-input").addEventListener("input", () => {
@@ -268,7 +274,7 @@
         });
 
         function emptyState() {
-            return { users: {}, votes: {}, adminId: null, templateId: null, phase: "setup", phaseAt: 0, controlAt: {} };
+            return { users: {}, votes: {}, submitted: {}, adminId: null, templateId: null, phase: "setup", phaseAt: 0, controlAt: {} };
         }
 
         function renderTemplateChoices() {
@@ -372,7 +378,7 @@
 
         function rebuild() {
             const next = emptyState();
-            const rank = { create: 0, join: 1, phase: 2, reset: 3, vote: 4 };
+            const rank = { create: 0, join: 1, phase: 2, reset: 3, vote: 4, submit: 5 };
             const ordered = ops.slice().sort((a, b) => a.at - b.at || (rank[a.t] ?? 9) - (rank[b.t] ?? 9));
             for (const op of ordered) {
                 if ((op.t === "create" || op.t === "join") && op.id && op.name) {
@@ -403,6 +409,8 @@
                             at: op.at
                         };
                     }
+                } else if (op.t === "submit" && op.id && next.phase === "open") {
+                    next.submitted[op.id] = op.at;
                 }
             }
             state = next;
@@ -430,7 +438,8 @@
             viewIndex = index;
             const admin = isAdmin();
             const phase = state.phase;
-            const votingOpen = phase === "open";
+            const submittedMine = Boolean(state.submitted[ME]);
+            const votingOpen = phase === "open" && (admin || !submittedMine);
 
             document.getElementById("statement-count").textContent = "Statement " + (index + 1) + " of " + lines.length;
             document.getElementById("statement-text").textContent = lines[index];
@@ -448,7 +457,7 @@
                 phaseHelp.textContent = admin ? "Share the invite link, then start polling." : "The host has not started polling yet.";
             } else if (phase === "open") {
                 phaseLabel.textContent = "Polling is open";
-                phaseHelp.textContent = admin ? "You can see every vote and reason. Participants cannot." : "Answer each statement. Only the host can see the votes.";
+                phaseHelp.textContent = admin ? "You can see every vote and reason. Participants cannot." : "Answer each statement, then submit. Only the host can see the votes.";
             } else {
                 phaseLabel.textContent = "Polling is closed";
                 phaseHelp.textContent = admin ? "Review the overall result, then open one person's answers." : "Your answers have been submitted.";
@@ -467,8 +476,16 @@
 
             const commentWrap = document.getElementById("comment-wrap");
             const commentInput = document.getElementById("comment-input");
-            commentWrap.classList.toggle("hidden", !votingOpen || !vote?.value);
+            commentWrap.classList.toggle("hidden", !votingOpen);
             commentInput.disabled = !votingOpen;
+
+            const submitRow = document.getElementById("submit-row");
+            const submitButton = document.getElementById("submit-answers");
+            submitRow.classList.toggle("hidden", admin);
+            submitRow.classList.toggle("flex", !admin);
+            const canSubmit = !admin && phase === "open" && !submittedMine;
+            submitButton.disabled = !canSubmit;
+            submitButton.textContent = submittedMine ? "Answers submitted" : "Submit answers";
             if (document.activeElement !== commentInput) commentInput.value = vote?.comment || "";
 
             const showVotes = admin && phase !== "setup";
@@ -511,7 +528,7 @@
 
                 const progress = document.createElement("p");
                 progress.className = "text-[11px] text-slate-500";
-                progress.textContent = answered + "/" + lines.length + " answered";
+                progress.textContent = answered + "/" + lines.length + " answered" + (state.submitted[id] ? " · Submitted" : "");
                 card.appendChild(progress);
 
                 const pill = document.createElement("div");
@@ -627,8 +644,24 @@
             return parts.map((part) => part[0] || "").join("").toUpperCase() || "?";
         }
 
+        async function submitAnswers() {
+            if (isAdmin() || state.phase !== "open" || state.submitted[ME]) return;
+            const current = myVote();
+            if (current?.value) {
+                await send({
+                    t: "vote",
+                    id: ME,
+                    i: viewIndex,
+                    value: current.value,
+                    comment: document.getElementById("comment-input").value.trim()
+                });
+            }
+            await send({ t: "submit", id: ME });
+            showToast("Answers submitted");
+        }
+
         function castVote(value) {
-            if (state.phase !== "open") return;
+            if (state.phase !== "open" || state.submitted[ME]) return;
             const current = myVote();
             const nextValue = current?.value === value ? null : value;
             send({
