@@ -343,7 +343,7 @@
                 seen.add(data.id);
                 let op;
                 try { op = JSON.parse(data.message); } catch { return; }
-                op.at = data.time || op.at || 0;
+                if (!op.at) op.at = data.time || 0;
                 ops.push(op);
                 rebuild();
             };
@@ -372,7 +372,8 @@
 
         function rebuild() {
             const next = emptyState();
-            const ordered = ops.slice().sort((a, b) => a.at - b.at);
+            const rank = { create: 0, join: 1, phase: 2, reset: 3, vote: 4 };
+            const ordered = ops.slice().sort((a, b) => a.at - b.at || (rank[a.t] ?? 9) - (rank[b.t] ?? 9));
             for (const op of ordered) {
                 if ((op.t === "create" || op.t === "join") && op.id && op.name) {
                     next.users[op.id] = { name: String(op.name).slice(0, 40), at: op.at };
