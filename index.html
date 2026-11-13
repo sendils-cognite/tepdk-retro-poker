@@ -597,6 +597,16 @@
             return { trues, falses };
         }
 
+        function countBar(count, axisMax, color) {
+            const track = document.createElement("div");
+            track.className = "h-2.5";
+            const fill = document.createElement("div");
+            fill.className = "h-full rounded-r " + color;
+            fill.style.width = (count / axisMax) * 100 + "%";
+            track.appendChild(fill);
+            return track;
+        }
+
         function countPair(trues, falses) {
             const counts = document.createElement("span");
             counts.className = "text-sm shrink-0 text-right";
@@ -650,64 +660,89 @@
             if (selectedPerson && !state.users[selectedPerson]) selectedPerson = null;
             const picker = document.getElementById("person-picker");
             picker.replaceChildren();
-            const scale = lines.length || 1;
+            if (!participants.length) return;
+
+            const axisMax = lines.length || 1;
+            const tickStep = axisMax <= 5 ? 1 : 2;
+            const ticks = [];
+            for (let mark = 0; mark <= axisMax; mark += tickStep) ticks.push(mark);
+            if (ticks[ticks.length - 1] !== axisMax) ticks.push(axisMax);
+            const chart = document.createElement("div");
+            chart.className = "space-y-1";
             for (const [id, person] of participants) {
                 const totals = voteTotals(id, lines);
-                const wrap = document.createElement("div");
-                wrap.className = "rounded-xl border px-4 py-3 " + (id === selectedPerson ? "border-indigo-500 bg-indigo-600/10" : "border-slate-700 bg-slate-900/70");
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "w-full text-left";
-                button.setAttribute("aria-expanded", id === selectedPerson ? "true" : "false");
-                const head = document.createElement("div");
-                head.className = "flex items-center justify-between gap-4 mb-2";
+                const row = document.createElement("button");
+                row.type = "button";
+                row.className = "grid w-full grid-cols-[7.5rem_1fr] items-center gap-x-3 rounded-lg px-1 py-1 text-left " + (id === selectedPerson ? "bg-indigo-600/15" : "hover:bg-slate-800/50");
+                row.setAttribute("aria-expanded", id === selectedPerson ? "true" : "false");
+                row.setAttribute("aria-label", person.name + ", True " + totals.trues + ", False " + totals.falses);
                 const name = document.createElement("span");
-                name.className = "text-sm text-white font-semibold";
+                name.className = "text-sm font-medium text-right truncate " + (id === selectedPerson ? "text-indigo-200" : "text-slate-200");
+                name.title = person.name;
                 name.textContent = person.name;
-                head.append(name, countPair(totals.trues, totals.falses));
-                const track = document.createElement("div");
-                track.className = "h-3 rounded-full bg-slate-800 overflow-hidden flex";
-                track.setAttribute("role", "img");
-                track.setAttribute("aria-label", person.name + ", True " + totals.trues + ", False " + totals.falses);
-                const trueSeg = document.createElement("div");
-                trueSeg.className = "h-full bg-green-500";
-                trueSeg.style.width = (totals.trues / scale) * 100 + "%";
-                const falseSeg = document.createElement("div");
-                falseSeg.className = "h-full bg-red-500";
-                falseSeg.style.width = (totals.falses / scale) * 100 + "%";
-                track.append(trueSeg, falseSeg);
-                button.append(head, track);
-                button.addEventListener("click", () => {
+                const plot = document.createElement("div");
+                plot.className = "flex flex-col justify-center gap-1 border-l border-slate-600 py-1 min-h-9";
+                plot.style.backgroundImage = "linear-gradient(to right, rgba(148,163,184,0.22) 1px, transparent 1px)";
+                plot.style.backgroundSize = (100 / (ticks.length - 1)) + "% 100%";
+                plot.append(countBar(totals.trues, axisMax, "bg-green-500"), countBar(totals.falses, axisMax, "bg-red-500"));
+                row.append(name, plot);
+                row.addEventListener("click", () => {
                     rememberSectionState();
                     selectedPerson = selectedPerson === id ? null : id;
                     render();
                 });
-                wrap.appendChild(button);
-                if (id === selectedPerson) {
-                    const answers = document.createElement("div");
-                    answers.className = "space-y-2 mt-3";
-                    lines.forEach((line, index) => {
-                        const choice = state.votes[index]?.[id];
-                        const block = document.createElement("div");
-                        block.className = "bg-slate-950/60 border border-slate-700 rounded-xl p-3";
-                        const title = document.createElement("p");
-                        title.className = "text-sm text-slate-200";
-                        title.textContent = (index + 1) + ". " + line;
-                        const value = document.createElement("p");
-                        value.className = "mt-1 text-sm font-semibold " + (choice?.value === "False" ? "text-red-400" : choice?.value === "True" ? "text-green-400" : "text-slate-500");
-                        value.textContent = choice?.value === "True" ? "True" : choice?.value === "False" ? "False" : "No vote";
-                        block.append(title, value);
-                        if (choice?.comment) {
-                            const note = document.createElement("p");
-                            note.className = "mt-1 text-sm text-slate-300";
-                            note.textContent = choice.comment;
-                            block.appendChild(note);
-                        }
-                        answers.appendChild(block);
-                    });
-                    wrap.appendChild(answers);
-                }
-                picker.appendChild(wrap);
+                chart.appendChild(row);
+            }
+            const axis = document.createElement("div");
+            axis.className = "grid grid-cols-[7.5rem_1fr] gap-x-3";
+            axis.appendChild(document.createElement("div"));
+            const scale = document.createElement("div");
+            scale.className = "relative h-5 border-t border-slate-600";
+            ticks.forEach((mark, index) => {
+                const tick = document.createElement("span");
+                tick.className = "absolute top-1 text-[11px] text-slate-500";
+                tick.style.left = (index / (ticks.length - 1)) * 100 + "%";
+                if (index === 0) tick.classList.add("translate-x-0");
+                else if (index === ticks.length - 1) tick.classList.add("-translate-x-full");
+                else tick.classList.add("-translate-x-1/2");
+                tick.textContent = String(mark);
+                scale.appendChild(tick);
+            });
+            axis.appendChild(scale);
+            const axisLabel = document.createElement("p");
+            axisLabel.className = "col-start-2 mt-4 text-center text-[11px] text-slate-500";
+            axisLabel.textContent = "Count";
+            axis.appendChild(axisLabel);
+            picker.append(chart, axis);
+
+            if (selectedPerson) {
+                const person = state.users[selectedPerson];
+                const answers = document.createElement("div");
+                answers.className = "space-y-2 mt-4";
+                const heading = document.createElement("p");
+                heading.className = "text-sm font-semibold text-white";
+                heading.textContent = person.name;
+                answers.appendChild(heading);
+                lines.forEach((line, index) => {
+                    const choice = state.votes[index]?.[selectedPerson];
+                    const block = document.createElement("div");
+                    block.className = "bg-slate-950/60 border border-slate-700 rounded-xl p-3";
+                    const title = document.createElement("p");
+                    title.className = "text-sm text-slate-200";
+                    title.textContent = (index + 1) + ". " + line;
+                    const value = document.createElement("p");
+                    value.className = "mt-1 text-sm font-semibold " + (choice?.value === "False" ? "text-red-400" : choice?.value === "True" ? "text-green-400" : "text-slate-500");
+                    value.textContent = choice?.value === "True" ? "True" : choice?.value === "False" ? "False" : "No vote";
+                    block.append(title, value);
+                    if (choice?.comment) {
+                        const note = document.createElement("p");
+                        note.className = "mt-1 text-sm text-slate-300";
+                        note.textContent = choice.comment;
+                        block.appendChild(note);
+                    }
+                    answers.appendChild(block);
+                });
+                picker.appendChild(answers);
             }
 
             const questions = document.getElementById("question-results");
