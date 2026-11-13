@@ -236,6 +236,7 @@
         let seen = new Set();
         let ops = [];
         let commentTimer = null;
+        const pendingVotes = {};
         let state = emptyState();
 
         const loginScreen = document.getElementById("login-screen");
@@ -270,6 +271,8 @@
         document.getElementById("comment-input").addEventListener("input", () => {
             clearTimeout(commentTimer);
             const index = viewIndex;
+            const comment = document.getElementById("comment-input").value.trim();
+            if (pendingVotes[index]) pendingVotes[index] = { ...pendingVotes[index], comment };
             commentTimer = setTimeout(() => syncComment(index), 500);
         });
 
@@ -429,7 +432,14 @@
         }
 
         function myVote(index = viewIndex) {
-            return state.votes[index]?.[ME] || null;
+            const serverVote = state.votes[index]?.[ME] || null;
+            const pendingVote = pendingVotes[index];
+            if (!pendingVote) return serverVote;
+            if (serverVote && serverVote.value === pendingVote.value && (serverVote.comment || "") === (pendingVote.comment || "")) {
+                delete pendingVotes[index];
+                return serverVote;
+            }
+            return pendingVote;
         }
 
         function render() {
@@ -646,15 +656,12 @@
 
         async function submitAnswers() {
             if (isAdmin() || state.phase !== "open" || state.submitted[ME]) return;
+            clearTimeout(commentTimer);
+            const comment = document.getElementById("comment-input").value.trim();
             const current = myVote();
             if (current?.value) {
-                await send({
-                    t: "vote",
-                    id: ME,
-                    i: viewIndex,
-                    value: current.value,
-                    comment: document.getElementById("comment-input").value.trim()
-                });
+                pendingVotes[viewIndex] = { value: current.value, comment };
+                await send({ t: "vote", id: ME, i: viewIndex, value: current.value, comment });
             }
             await send({ t: "submit", id: ME });
             showToast("Answers submitted");
@@ -664,13 +671,10 @@
             if (state.phase !== "open" || state.submitted[ME]) return;
             const current = myVote();
             const nextValue = current?.value === value ? null : value;
-            send({
-                t: "vote",
-                id: ME,
-                i: viewIndex,
-                value: nextValue,
-                comment: document.getElementById("comment-input").value.trim()
-            });
+            const comment = document.getElementById("comment-input").value.trim();
+            pendingVotes[viewIndex] = { value: nextValue, comment };
+            render();
+            send({ t: "vote", id: ME, i: viewIndex, value: nextValue, comment });
         }
 
         function syncComment(index) {
