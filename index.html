@@ -99,15 +99,6 @@
                 </button>
             </header>
 
-            <div id="invite-panel" class="hidden glass-panel rounded-2xl p-4 mb-6 border border-indigo-500/40">
-                <p class="text-sm font-medium text-indigo-300 mb-2">Invite link</p>
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <input id="invite-url" readonly class="flex-grow bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-200">
-                    <button id="copy-link-inline" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-xl">Copy</button>
-                </div>
-                <p class="text-xs text-slate-500 mt-2">Anyone with this link can vote. Only you can see their votes and reasons.</p>
-            </div>
-
             <div class="flex-grow flex flex-col gap-6">
                 <div id="phase-banner" class="glass-panel rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
@@ -281,7 +272,6 @@
         document.getElementById("finish-poll").addEventListener("click", () => send({ t: "phase", phase: "closed", id: ME }));
         document.getElementById("submit-answers").addEventListener("click", submitAnswers);
         document.getElementById("copy-link").addEventListener("click", copyInviteLink);
-        document.getElementById("copy-link-inline").addEventListener("click", copyInviteLink);
         document.getElementById("comment-input").addEventListener("input", () => {
             clearTimeout(commentTimer);
             const index = viewIndex;
@@ -345,9 +335,6 @@
             pokerScreen.classList.remove("hidden");
             pokerScreen.classList.add("flex");
             document.getElementById("display-session-id").textContent = room.slice(-6).toUpperCase();
-            const invite = document.getElementById("invite-url");
-            invite.value = location.href;
-            document.getElementById("invite-panel").classList.toggle("hidden", !creating);
             render();
             connect();
             if (creating) send({ t: "create", id: ME, name: myName, template: selectedTemplate });
@@ -495,8 +482,6 @@
             document.getElementById("btn-true").classList.toggle("selected-true", vote?.value === "True");
             document.getElementById("btn-false").classList.toggle("selected-false", vote?.value === "False");
             document.getElementById("vote-row").classList.toggle("hidden", !votingOpen);
-            document.getElementById("invite-panel").classList.toggle("hidden", !admin);
-            if (room) document.getElementById("invite-url").value = location.href;
 
             const commentWrap = document.getElementById("comment-wrap");
             const commentInput = document.getElementById("comment-input");
@@ -755,7 +740,6 @@
             const url = new URL(location.href);
             url.searchParams.set("room", room);
             const text = url.toString();
-            document.getElementById("invite-url").value = text;
             if (navigator.clipboard?.writeText) {
                 navigator.clipboard.writeText(text).then(() => showToast("Invite link copied"));
                 return;
