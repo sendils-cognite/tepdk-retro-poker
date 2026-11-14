@@ -489,7 +489,9 @@
                 phaseHelp.textContent = admin ? "Share the invite link, then start polling." : "The host has not started polling yet.";
             } else if (phase === "open") {
                 phaseLabel.textContent = "Polling is open";
-                phaseHelp.textContent = admin ? "You can see every vote and reason. Participants cannot." : "Answer each statement, then submit. Only the host can see the votes.";
+                phaseHelp.textContent = admin
+                    ? "You can see every vote and reason. Participants cannot."
+                    : (submittedMine ? "Your answers have been submitted. Waiting for the host to finish polling." : "Answer each statement, then submit. Only the host can see the votes.");
             } else {
                 phaseLabel.textContent = "Polling is closed";
                 phaseHelp.textContent = admin ? "Click a participant bar to read their answers." : "Your answers have been submitted.";
@@ -499,7 +501,7 @@
             const hostSummary = admin && phase === "closed";
             document.getElementById("statement-card").classList.toggle("hidden", hostSummary);
             document.getElementById("nav-row").classList.toggle("hidden", hostSummary);
-            document.getElementById("people-board").classList.toggle("hidden", hostSummary);
+            document.getElementById("people-board").classList.toggle("hidden", !admin || hostSummary);
 
             const vote = myVote();
             document.getElementById("btn-true").disabled = !votingOpen;
@@ -545,10 +547,14 @@
         }
 
         function renderPeople(lines, index, admin, showVotes) {
+            const grid = document.getElementById("participants-grid");
+            if (!admin || state.phase === "closed") {
+                grid.replaceChildren();
+                return;
+            }
             const people = Object.entries(state.users).sort((a, b) => a[1].at - b[1].at);
             const votedHere = people.filter(([id]) => state.votes[index]?.[id]?.value).length;
             document.getElementById("voter-count").textContent = votedHere + "/" + people.length + " voted on this statement";
-            const grid = document.getElementById("participants-grid");
             grid.replaceChildren();
             for (const [id, person] of people) {
                 const card = document.createElement("div");
