@@ -238,8 +238,8 @@
             }
         ];
 
-        const ME = localStorage.getItem("retro-me") || crypto.randomUUID();
-        localStorage.setItem("retro-me", ME);
+        const ME = sessionStorage.getItem("retro-me") || crypto.randomUUID();
+        sessionStorage.setItem("retro-me", ME);
 
         const params = new URLSearchParams(location.search);
         let room = params.get("room");
