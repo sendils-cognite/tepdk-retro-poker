@@ -204,7 +204,7 @@
                     </details>
                 </div>
 
-                <div id="people-board" class="glass-panel rounded-2xl p-6 border border-slate-700/50 flex-grow mb-8">
+                <div id="people-board" class="hidden glass-panel rounded-2xl p-6 border border-slate-700/50 flex-grow mb-8">
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-lg font-semibold text-white flex items-center gap-2">
                             <i class="ph-fill ph-users-three text-slate-400"></i> Participants
@@ -501,7 +501,11 @@
             const hostSummary = admin && phase === "closed";
             document.getElementById("statement-card").classList.toggle("hidden", hostSummary);
             document.getElementById("nav-row").classList.toggle("hidden", hostSummary);
-            document.getElementById("people-board").classList.toggle("hidden", !admin || hostSummary);
+            const peopleBoard = document.getElementById("people-board");
+            if (peopleBoard) {
+                if (state.adminId && !admin) peopleBoard.remove();
+                else peopleBoard.classList.toggle("hidden", !admin || hostSummary);
+            }
 
             const vote = myVote();
             document.getElementById("btn-true").disabled = !votingOpen;
@@ -548,6 +552,7 @@
 
         function renderPeople(lines, index, admin, showVotes) {
             const grid = document.getElementById("participants-grid");
+            if (!grid) return;
             if (!admin || state.phase === "closed") {
                 grid.replaceChildren();
                 return;
