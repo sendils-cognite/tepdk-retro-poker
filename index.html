@@ -59,6 +59,7 @@
                         <i class="ph ph-cards text-3xl"></i>
                     </div>
                     <h1 class="text-3xl font-bold text-white tracking-tight">Retro Poker</h1>
+                    <p id="login-greeting" class="hidden text-indigo-300 font-semibold mt-3 text-base"></p>
                     <p id="login-blurb" class="text-slate-400 mt-2 text-sm">Choose a question template, start the room, then share the invite link. You will be the only person who can see the votes.</p>
                 </div>
                 <div class="space-y-5">
@@ -100,6 +101,16 @@
             </header>
 
             <div class="flex-grow flex flex-col gap-6">
+                <div id="participant-greeting" class="hidden glass-panel rounded-2xl p-4 border border-indigo-500/30 bg-indigo-500/10 flex items-start gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="ph ph-hand-waving text-xl"></i>
+                    </div>
+                    <div>
+                        <p id="greeting-title" class="text-white font-semibold">Welcome!</p>
+                        <p id="greeting-body" class="text-sm text-slate-300 mt-0.5">Thanks for taking part in this TEPDK retrospective. Your honest feedback matters, and only the host can see your votes and reasons.</p>
+                    </div>
+                </div>
+
                 <div id="phase-banner" class="glass-panel rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
                         <p id="phase-label" class="text-white font-semibold">Waiting to start</p>
@@ -268,7 +279,10 @@
         if (room) {
             joinBtnText.textContent = "Join session";
             templatePicker.classList.add("hidden");
-            document.getElementById("login-blurb").textContent = "You're joining a room. The host already chose the questions.";
+            const loginGreeting = document.getElementById("login-greeting");
+            loginGreeting.textContent = "Welcome to the TEPDK Retrospective!";
+            loginGreeting.classList.remove("hidden");
+            document.getElementById("login-blurb").textContent = "Thank you for joining. Enter your name below to enter the polling session—only the host can see your votes and reasons.";
         }
         if (myName) nicknameInput.value = myName;
         renderTemplateChoices();
@@ -481,6 +495,18 @@
             const role = document.getElementById("role-badge");
             role.textContent = admin ? "Host" : "Participant";
             role.className = "px-2 py-0.5 rounded-full " + (admin ? "bg-indigo-500/20 text-indigo-300" : "bg-slate-800 text-slate-300");
+
+            const greeting = document.getElementById("participant-greeting");
+            greeting.classList.toggle("hidden", admin);
+            if (!admin) {
+                const displayName = myName || state.users[ME]?.name;
+                document.getElementById("greeting-title").textContent = displayName
+                    ? "Welcome, " + displayName + "!"
+                    : "Welcome!";
+                const hostName = state.adminId ? state.users[state.adminId]?.name : "";
+                document.getElementById("greeting-body").textContent = (hostName ? hostName + " invited you to this TEPDK retrospective. " : "Thanks for joining this TEPDK retrospective. ")
+                    + "Take your time—only the host can see your votes and reasons.";
+            }
 
             const phaseLabel = document.getElementById("phase-label");
             const phaseHelp = document.getElementById("phase-help");
