@@ -114,6 +114,23 @@
             </div>
         </div>
 
+        <div id="thanks-screen" class="hidden absolute inset-0 z-30 items-center justify-center p-4 bg-[#0f172a] min-h-screen" role="status" aria-live="polite">
+            <div class="glass-panel p-6 sm:p-10 rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden text-center">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500"></div>
+                <div class="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-green-500/20 border border-green-500/40 text-green-400">
+                    <i class="ph-fill ph-check-circle text-5xl sm:text-6xl"></i>
+                </div>
+                <p class="mt-5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/15 text-green-300 text-xs font-semibold uppercase tracking-widest">
+                    <i class="ph ph-seal-check"></i> Survey completed
+                </p>
+                <h1 id="thanks-title" class="mt-4 text-3xl sm:text-4xl font-bold text-white tracking-tight">Thank you!</h1>
+                <p id="thanks-body" class="mt-3 text-base text-slate-300 leading-relaxed"></p>
+                <p id="thanks-detail" class="mt-4 text-sm text-slate-400"></p>
+                <p class="mt-1 text-sm text-slate-400">Only the host can see your answers and reasons.</p>
+                <p class="mt-6 text-xs text-slate-500">You can close this page now.</p>
+            </div>
+        </div>
+
         <div id="poker-screen" class="hidden flex-col h-full w-full max-w-6xl mx-auto p-4 md:p-6 lg:p-8">
             <header class="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 glass-panel p-4 rounded-2xl">
                 <div class="flex items-center gap-3">
@@ -161,16 +178,6 @@
                         <button id="start-poll" class="hidden w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 sm:py-2.5 px-5 rounded-xl">Start polling</button>
                         <button id="finish-poll" class="hidden w-full sm:w-auto bg-rose-600 hover:bg-rose-500 text-white font-semibold py-3 sm:py-2.5 px-5 rounded-xl">Finish polling</button>
                     </div>
-                </div>
-
-                <div id="survey-complete" class="hidden glass-panel rounded-2xl p-6 sm:p-10 border border-green-500/40 bg-green-500/10 flex-col items-center text-center" role="status" aria-live="polite">
-                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center text-green-400">
-                        <i class="ph-fill ph-check-circle text-4xl sm:text-5xl"></i>
-                    </div>
-                    <h2 class="mt-4 text-2xl sm:text-3xl font-bold text-white">Survey completed</h2>
-                    <p id="survey-complete-detail" class="mt-2 text-sm sm:text-base text-slate-300"></p>
-                    <p class="mt-1 text-sm text-slate-400">Thank you for your feedback. Only the host can see your answers and reasons.</p>
-                    <p class="mt-4 text-xs text-slate-500">You can close this page now.</p>
                 </div>
 
                 <div id="statement-card" class="glass-panel rounded-2xl p-4 sm:p-6 relative border border-slate-700/50">
@@ -309,6 +316,7 @@
         let selectedTemplate = TEMPLATES[0].id;
         let createdByMe = false;
         let viewIndex = 0;
+        let thanksShown = false;
         let selectedPerson = null;
         let completionOpen = true;
         let participantsOpen = true;
@@ -594,13 +602,24 @@
             if (!qrAvailable) closeQrOverlay();
             const hostSummary = admin && phase === "closed";
             const participantDone = !admin && submittedMine;
-            const surveyComplete = document.getElementById("survey-complete");
-            surveyComplete.classList.toggle("hidden", !participantDone);
-            surveyComplete.classList.toggle("flex", participantDone);
+            const thanks = document.getElementById("thanks-screen");
+            thanks.classList.toggle("hidden", !participantDone);
+            thanks.classList.toggle("flex", participantDone);
             if (participantDone) {
-                const answeredMine = answeredCount(lines);
-                document.getElementById("survey-complete-detail").textContent = "You answered " + answeredMine + " of " + lines.length + " statements" + (myName ? ", " + myName : "") + ".";
+                const displayName = myName || state.users[ME]?.name;
+                const hostName = state.adminId ? state.users[state.adminId]?.name : "";
+                document.getElementById("thanks-title").textContent = displayName ? "Thank you, " + displayName + "!" : "Thank you!";
+                document.getElementById("thanks-body").textContent = "Your survey is complete. Thanks for sharing your honest feedback"
+                    + (hostName ? " with " + hostName + " and the team" : "") + " in this TEPDK retrospective.";
+                document.getElementById("thanks-detail").textContent = "You answered " + answeredCount(lines) + " of " + lines.length + " statements.";
+                if (!thanksShown) window.scrollTo(0, 0);
+                pokerScreen.classList.add("hidden");
+                pokerScreen.classList.remove("flex");
+            } else if (thanksShown) {
+                pokerScreen.classList.remove("hidden");
+                pokerScreen.classList.add("flex");
             }
+            thanksShown = participantDone;
             document.getElementById("statement-card").classList.toggle("hidden", hostSummary || participantDone);
             document.getElementById("nav-row").classList.toggle("hidden", hostSummary || participantDone);
             const peopleBoard = document.getElementById("people-board");
