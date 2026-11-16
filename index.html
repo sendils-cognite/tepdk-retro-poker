@@ -347,11 +347,11 @@
             }
         ];
 
-        const ME = sessionStorage.getItem("retro-me") || crypto.randomUUID();
-        sessionStorage.setItem("retro-me", ME);
-
         const params = new URLSearchParams(location.search);
         let room = params.get("room");
+        const demoHost = params.get("host");
+        const ME = (room && demoHost) ? demoHost : (sessionStorage.getItem("retro-me") || crypto.randomUUID());
+        sessionStorage.setItem("retro-me", ME);
         let myName = sessionStorage.getItem("retro-name") || "";
         let selectedTemplate = TEMPLATES[0].id;
         let createdByMe = false;
@@ -518,7 +518,13 @@
                 let op;
                 try { op = JSON.parse(data.message); } catch { return; }
                 if (!op.at) op.at = data.time || 0;
-                ops.push(op);
+                if (op.t === "batch" && Array.isArray(op.ops)) {
+                    for (const item of op.ops) {
+                        if (item && typeof item === "object" && item.t !== "batch") ops.push({ ...item, at: item.at || op.at });
+                    }
+                } else {
+                    ops.push(op);
+                }
                 rebuild();
             };
         }
@@ -1125,6 +1131,16 @@
             const toast = document.getElementById("toast");
             toast.classList.remove("opacity-0", "pointer-events-none", "translate-y-[-20px]");
             setTimeout(() => toast.classList.add("opacity-0", "pointer-events-none", "translate-y-[-20px]"), 3000);
+        }
+
+        if (room && demoHost) {
+            myName = "Survey Admin";
+            sessionStorage.setItem("retro-name", myName);
+            loginScreen.classList.add("hidden");
+            document.getElementById("display-session-id").textContent = roomCode();
+            showPokerScreen();
+            render();
+            connect();
         }
     </script>
 </body>
