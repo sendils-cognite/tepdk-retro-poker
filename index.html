@@ -75,7 +75,7 @@
                     </div>
                     <h1 class="text-3xl font-bold text-white tracking-tight">Retro Poker</h1>
                     <p id="login-greeting" class="hidden text-indigo-300 font-semibold mt-3 text-base"></p>
-                    <p id="login-blurb" class="text-slate-400 mt-2 text-sm">Choose a question template, start the room, then share the invite link. You will be the only person who can see the votes.</p>
+                    <p id="login-blurb" class="text-slate-400 mt-2 text-sm">Choose a question template, start the room, then share the invite link. Only you will see the results, as anonymous totals per statement.</p>
                 </div>
                 <div class="space-y-5">
                     <div>
@@ -128,7 +128,7 @@
                 <h1 id="thanks-title" class="mt-4 text-3xl sm:text-4xl font-bold text-white tracking-tight">Thank you!</h1>
                 <p id="thanks-body" class="mt-3 text-base text-slate-300 leading-relaxed"></p>
                 <p id="thanks-detail" class="mt-4 text-sm text-slate-400"></p>
-                <p class="mt-1 text-sm text-slate-400">Only the host can see your answers and reasons.</p>
+                <p class="mt-1 text-sm text-slate-400">Your answers are anonymous. The host only sees combined totals.</p>
                 <p class="mt-6 text-xs text-slate-500">You can close this page now.</p>
             </div>
         </div>
@@ -167,7 +167,7 @@
                     </div>
                     <div>
                         <p id="greeting-title" class="text-white font-semibold">Welcome!</p>
-                        <p id="greeting-body" class="text-sm text-slate-300 mt-0.5">Thanks for taking part in this TEPDK retrospective. Your honest feedback matters, and only the host can see your votes and reasons.</p>
+                        <p id="greeting-body" class="text-sm text-slate-300 mt-0.5">Thanks for taking part in this TEPDK retrospective. Your honest feedback matters, and your answers are anonymous.</p>
                     </div>
                 </div>
 
@@ -188,6 +188,15 @@
                         <span id="statement-count">Statement 1 of 10</span>
                     </div>
                     <p id="statement-text" class="text-white text-lg sm:text-xl md:text-2xl font-medium mt-3 leading-snug"></p>
+                    <div id="timer-wrap" class="hidden mt-4" role="timer" aria-live="off">
+                        <div class="flex items-center justify-between text-xs font-medium mb-1.5">
+                            <span class="text-slate-400 flex items-center gap-1"><i class="ph ph-timer"></i> Time left</span>
+                            <span id="timer-label" class="text-slate-200 tabular-nums">45s</span>
+                        </div>
+                        <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+                            <div id="timer-bar" class="h-full rounded-full bg-indigo-500" style="width:100%"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="vote-row" class="grid grid-cols-2 gap-3 sm:gap-4">
@@ -207,39 +216,27 @@
                     </button>
                 </div>
 
-                <div id="comment-wrap" class="hidden glass-panel rounded-2xl p-4">
-                    <label for="comment-input" class="block text-sm font-medium text-slate-300 mb-2">Why did you choose this?</label>
-                    <textarea id="comment-input" rows="2" maxlength="500" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Optional if you voted True. Add the reason if you voted False."></textarea>
+                <div id="nav-row" class="flex items-center justify-between gap-3">
+                    <p id="pace-note" class="text-xs text-slate-500"></p>
+                    <button id="next-btn" class="shrink-0 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2.5 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
+                        <span id="next-btn-text">Next</span> <i class="ph ph-caret-right"></i>
+                    </button>
                 </div>
 
-                <div id="nav-row" class="flex items-center justify-between gap-3">
-                    <button id="prev-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2.5 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
-                        <i class="ph ph-caret-left"></i> Previous
-                    </button>
-                    <p id="pace-note" class="hidden sm:block text-xs text-slate-500 text-center">Move at your own pace. The template is the same for the whole room.</p>
-                    <button id="next-btn" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2.5 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
-                        Next <i class="ph ph-caret-right"></i>
+                <div id="review-panel" class="hidden glass-panel rounded-2xl p-4 sm:p-6 flex-col gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2"><i class="ph ph-list-checks text-indigo-400"></i> Review your answers</h3>
+                        <p id="review-summary" class="text-sm text-slate-300 mt-1"></p>
+                    </div>
+                    <div id="review-unanswered" class="space-y-2"></div>
+                    <button id="revisit-btn" type="button" class="hidden w-full sm:w-auto self-start bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 font-semibold py-3 sm:py-2.5 px-5 rounded-xl border border-amber-500/40 items-center justify-center gap-2">
+                        <i class="ph ph-arrow-counter-clockwise"></i> <span id="revisit-btn-text">Revisit unanswered</span>
                     </button>
                 </div>
 
                 <div id="submit-row" class="hidden flex-col items-center gap-2">
                     <button id="submit-answers" disabled class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3.5 sm:py-3 px-8 rounded-xl shadow-lg shadow-indigo-500/30">Submit answers</button>
                     <p id="submit-status" class="text-xs text-slate-400 text-center"></p>
-                </div>
-
-                <div id="chart" class="hidden glass-panel rounded-2xl p-6">
-                    <h3 class="text-sm font-semibold text-slate-300 mb-1">Votes on this statement</h3>
-                    <p class="text-xs text-slate-500 mb-4">Visible only to the host.</p>
-                    <div class="space-y-3">
-                        <div>
-                            <div class="flex justify-between text-sm mb-1"><span class="text-green-400 font-semibold">True</span><span id="true-count" class="text-slate-300">0</span></div>
-                            <div class="h-3 rounded-full bg-slate-800 overflow-hidden"><div id="true-bar" class="h-full bg-green-500 rounded-full" style="width:0%"></div></div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-sm mb-1"><span class="text-red-400 font-semibold">False</span><span id="false-count" class="text-slate-300">0</span></div>
-                            <div class="h-3 rounded-full bg-slate-800 overflow-hidden"><div id="false-bar" class="h-full bg-red-500 rounded-full" style="width:0%"></div></div>
-                        </div>
-                    </div>
                 </div>
 
                 <div id="results" class="hidden space-y-4">
@@ -252,25 +249,31 @@
                             <span id="completion-summary" class="text-sm text-slate-400 shrink-0 text-right"></span>
                         </summary>
                     </details>
-                    <details id="participants-section" class="results-section glass-panel rounded-2xl p-4 sm:p-6" open>
+                    <details id="questions-section" class="results-section glass-panel rounded-2xl p-4 sm:p-6" open>
                         <summary class="flex items-center justify-between gap-4">
                             <span class="flex items-center gap-2 text-lg font-semibold text-white">
                                 <i class="ph ph-caret-right chevron text-slate-400"></i>
-                                Participants
+                                Poll questions
                             </span>
-                            <span id="participants-overall" class="text-sm shrink-0"></span>
+                            <span id="discuss-summary" class="text-sm text-slate-400 shrink-0 text-right"></span>
                         </summary>
-                        <div class="mt-4 flex items-center gap-4 text-xs text-slate-400">
-                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-green-500"></span>True</span>
-                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-red-500"></span>False</span>
+                        <div class="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-4 text-xs text-slate-400">
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-green-500"></span>True</span>
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-red-500"></span>False</span>
+                                <span>Anonymous totals</span>
+                            </div>
+                            <label class="flex items-center gap-2 text-sm text-slate-300">
+                                <span class="shrink-0">Sort by</span>
+                                <select id="question-sort" class="flex-grow sm:flex-grow-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="order">Statement order</option>
+                                    <option value="false-desc">Most False first</option>
+                                    <option value="false-asc">Least False first</option>
+                                    <option value="true-desc">Most True first</option>
+                                    <option value="true-asc">Least True first</option>
+                                </select>
+                            </label>
                         </div>
-                        <div id="person-picker" class="mt-3 space-y-3"></div>
-                    </details>
-                    <details id="questions-section" class="results-section glass-panel rounded-2xl p-4 sm:p-6" open>
-                        <summary class="flex items-center gap-2 text-lg font-semibold text-white">
-                            <i class="ph ph-caret-right chevron text-slate-400"></i>
-                            Poll questions
-                        </summary>
                         <div id="question-results" class="mt-4 space-y-2"></div>
                     </details>
                 </div>
@@ -279,7 +282,7 @@
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-lg font-semibold text-white flex items-center gap-2">
                             <i class="ph-fill ph-users-three text-slate-400"></i> Participants
-                            <span id="voter-count" class="bg-slate-800 text-slate-300 text-xs py-1 px-2.5 rounded-full ml-2">0/0 voted</span>
+                            <span id="voter-count" class="bg-slate-800 text-slate-300 text-xs py-1 px-2.5 rounded-full ml-2">0 of 0 submitted</span>
                         </h3>
                     </div>
                     <div id="participants-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
@@ -317,16 +320,23 @@
         let myName = sessionStorage.getItem("retro-name") || "";
         let selectedTemplate = TEMPLATES[0].id;
         let createdByMe = false;
+        const STATEMENT_SECONDS = Math.max(1, Math.floor(Number(params.get("t")) || 45));
         let viewIndex = 0;
+        let flowMode = "pass";
+        let revisitQueue = [];
+        let flowStep = 0;
+        let historyReady = false;
+        let historyTimer = null;
+        let timerKey = "";
+        let timerEnd = 0;
+        let timerHandle = null;
         let thanksShown = false;
-        let selectedPerson = null;
         let completionOpen = true;
-        let participantsOpen = true;
         let questionsOpen = true;
+        let questionSort = "order";
         let source = null;
         let seen = new Set();
         let ops = [];
-        let commentTimer = null;
         const pendingVotes = {};
         let state = emptyState();
 
@@ -343,7 +353,7 @@
             const loginGreeting = document.getElementById("login-greeting");
             loginGreeting.textContent = "Welcome to the TEPDK Retrospective!";
             loginGreeting.classList.remove("hidden");
-            document.getElementById("login-blurb").textContent = "Thank you for joining. Enter your name below to enter the polling session—only the host can see your votes and reasons.";
+            document.getElementById("login-blurb").textContent = "Thank you for joining. Enter your name below to enter the polling session. Your answers are anonymous.";
         }
         if (myName) nicknameInput.value = myName;
         renderTemplateChoices();
@@ -355,8 +365,12 @@
         joinBtn.addEventListener("click", joinOrCreate);
         document.getElementById("btn-true").addEventListener("click", () => castVote("True"));
         document.getElementById("btn-false").addEventListener("click", () => castVote("False"));
-        document.getElementById("prev-btn").addEventListener("click", () => move(-1));
-        document.getElementById("next-btn").addEventListener("click", () => move(1));
+        document.getElementById("next-btn").addEventListener("click", advance);
+        document.getElementById("revisit-btn").addEventListener("click", () => startRevisit(unansweredIndexes(statements())));
+        document.getElementById("question-sort").addEventListener("change", (event) => {
+            questionSort = event.target.value;
+            render();
+        });
         document.getElementById("start-poll").addEventListener("click", () => send({ t: "phase", phase: "open", id: ME }));
         document.getElementById("finish-poll").addEventListener("click", () => send({ t: "phase", phase: "closed", id: ME }));
         document.getElementById("submit-answers").addEventListener("click", submitAnswers);
@@ -371,14 +385,6 @@
         document.addEventListener("keydown", (event) => {
             if (event.key === "Escape") closeQrOverlay();
         });
-        document.getElementById("comment-input").addEventListener("input", () => {
-            clearTimeout(commentTimer);
-            const index = viewIndex;
-            const comment = document.getElementById("comment-input").value.trim();
-            if (pendingVotes[index]) pendingVotes[index] = { ...pendingVotes[index], comment };
-            commentTimer = setTimeout(() => syncComment(index), 500);
-        });
-
         function emptyState() {
             return { users: {}, votes: {}, submitted: {}, adminId: null, templateId: null, phase: "setup", phaseAt: 0, controlAt: {} };
         }
@@ -428,6 +434,7 @@
                 url.searchParams.set("room", room);
                 history.replaceState(null, "", url);
             }
+            loadFlow();
             joinBtn.disabled = true;
             joinBtnText.textContent = "Connecting...";
             loginScreen.classList.add("hidden");
@@ -443,9 +450,13 @@
         function connect() {
             if (source) source.close();
             source = new EventSource("https://ntfy.sh/" + room + "/sse?since=all");
-            source.onopen = () => setLive("Live", "text-green-400");
+            source.onopen = () => {
+                setLive("Live", "text-green-400");
+                settleHistory();
+            };
             source.onerror = () => setLive("Reconnecting", "text-amber-400");
             source.onmessage = (event) => {
+                settleHistory();
                 let data;
                 try { data = JSON.parse(event.data); } catch { return; }
                 if (!data || data.event !== "message" || seen.has(data.id)) return;
@@ -456,6 +467,15 @@
                 ops.push(op);
                 rebuild();
             };
+        }
+
+        function settleHistory() {
+            if (historyReady) return;
+            clearTimeout(historyTimer);
+            historyTimer = setTimeout(() => {
+                historyReady = true;
+                render();
+            }, 800);
         }
 
         function setLive(text, color) {
@@ -508,7 +528,6 @@
                     if (!current || op.at >= current.at) {
                         next.votes[op.i][op.id] = {
                             value: op.value === "True" || op.value === "False" ? op.value : null,
-                            comment: String(op.comment || "").slice(0, 500),
                             at: op.at
                         };
                     }
@@ -542,7 +561,7 @@
             const serverVote = state.votes[index]?.[ME] || null;
             const pendingVote = pendingVotes[index];
             if (!pendingVote) return serverVote;
-            if (serverVote && serverVote.value === pendingVote.value && (serverVote.comment || "") === (pendingVote.comment || "")) {
+            if (serverVote && serverVote.value === pendingVote.value) {
                 delete pendingVotes[index];
                 return serverVote;
             }
@@ -556,12 +575,20 @@
             const admin = isAdmin();
             const phase = state.phase;
             const submittedMine = Boolean(state.submitted[ME]);
-            const votingOpen = phase === "open" && (admin || !submittedMine);
 
-            document.getElementById("statement-count").textContent = "Statement " + (index + 1) + " of " + lines.length;
+            const answering = !admin && phase === "open" && !submittedMine;
+            const reviewing = answering && flowMode === "review";
+            const onStatement = answering && !reviewing;
+
+            document.getElementById("statement-count").textContent = flowMode === "revisit"
+                ? "Revisiting statement " + (index + 1) + " of " + lines.length
+                : "Statement " + (index + 1) + " of " + lines.length;
             document.getElementById("statement-text").textContent = lines[index];
-            document.getElementById("prev-btn").disabled = index === 0;
-            document.getElementById("next-btn").disabled = index === lines.length - 1;
+            document.getElementById("next-btn").disabled = !onStatement;
+            document.getElementById("next-btn-text").textContent = flowMode === "pass" && index === lines.length - 1
+                ? "Review answers"
+                : flowMode === "revisit" && revisitQueue.length <= 1 ? "Back to review" : "Next";
+            document.getElementById("pace-note").textContent = "Each statement has " + STATEMENT_SECONDS + " seconds. Skipped statements can be revisited at the end.";
 
             const role = document.getElementById("role-badge");
             role.textContent = admin ? "Host" : "Participant";
@@ -576,7 +603,7 @@
                     : "Welcome!";
                 const hostName = state.adminId ? state.users[state.adminId]?.name : "";
                 document.getElementById("greeting-body").textContent = (hostName ? hostName + " invited you to this TEPDK retrospective. " : "Thanks for joining this TEPDK retrospective. ")
-                    + "Take your time—only the host can see your votes and reasons.";
+                    + "Each statement has " + STATEMENT_SECONDS + " seconds. Your answers are anonymous: the host only sees combined totals.";
             }
 
             const phaseLabel = document.getElementById("phase-label");
@@ -587,12 +614,14 @@
             } else if (phase === "open") {
                 phaseLabel.textContent = "Polling is open";
                 phaseHelp.textContent = admin
-                    ? "You can see every vote and reason. Participants cannot."
-                    : (submittedMine ? "Your answers have been submitted. Waiting for the host to finish polling." : "Answer each statement, then submit. Only the host can see the votes.");
+                    ? "Participants answer on their own devices. You will see anonymous totals per statement when you finish polling."
+                    : submittedMine ? "Your answers have been submitted. Waiting for the host to finish polling."
+                        : reviewing ? "Revisit any unanswered statements, then submit."
+                            : "Pick True or False before the timer runs out. Your answers are anonymous.";
             } else {
                 phaseLabel.textContent = "Polling is closed";
                 phaseHelp.textContent = admin
-                    ? "Click a participant bar to read their answers."
+                    ? "Anonymous totals per statement. Statements where more than half answered False are marked Discuss."
                     : (submittedMine ? "Your answers have been submitted." : "The host has closed polling.");
             }
             document.getElementById("start-poll").classList.toggle("hidden", !(admin && phase === "setup"));
@@ -622,8 +651,8 @@
                 pokerScreen.classList.add("flex");
             }
             thanksShown = participantDone;
-            document.getElementById("statement-card").classList.toggle("hidden", hostSummary || participantDone);
-            document.getElementById("nav-row").classList.toggle("hidden", hostSummary || participantDone);
+            document.getElementById("statement-card").classList.toggle("hidden", !onStatement);
+            document.getElementById("nav-row").classList.toggle("hidden", !onStatement);
             const peopleBoard = document.getElementById("people-board");
             if (peopleBoard) {
                 if (state.adminId && !admin) peopleBoard.remove();
@@ -631,150 +660,201 @@
             }
 
             const vote = myVote();
-            document.getElementById("btn-true").disabled = !votingOpen;
-            document.getElementById("btn-false").disabled = !votingOpen;
+            document.getElementById("btn-true").disabled = !onStatement;
+            document.getElementById("btn-false").disabled = !onStatement;
             document.getElementById("btn-true").classList.toggle("selected-true", vote?.value === "True");
             document.getElementById("btn-false").classList.toggle("selected-false", vote?.value === "False");
-            document.getElementById("vote-row").classList.toggle("hidden", hostSummary || !votingOpen);
+            document.getElementById("vote-row").classList.toggle("hidden", !onStatement);
 
-            const commentWrap = document.getElementById("comment-wrap");
-            const commentInput = document.getElementById("comment-input");
-            commentWrap.classList.toggle("hidden", hostSummary || !votingOpen);
-            commentInput.disabled = !votingOpen;
-
+            renderReview(lines, reviewing);
             const submitRow = document.getElementById("submit-row");
             const submitButton = document.getElementById("submit-answers");
             const submitStatus = document.getElementById("submit-status");
-            submitRow.classList.toggle("hidden", admin || participantDone);
-            submitRow.classList.toggle("flex", !admin && !participantDone);
-            const answered = answeredCount(lines);
-            const allAnswered = answered === lines.length;
-            const canSubmit = !admin && phase === "open" && !submittedMine && allAnswered;
-            submitButton.disabled = !canSubmit;
-            submitButton.textContent = submittedMine ? "Answers submitted" : "Submit answers";
-            submitStatus.classList.toggle("hidden", admin || phase !== "open" || submittedMine);
-            submitStatus.textContent = allAnswered
-                ? "All statements answered."
-                : "Answer every statement before submitting. " + answered + " of " + lines.length + " answered.";
-            if (document.activeElement !== commentInput) commentInput.value = vote?.comment || "";
+            submitRow.classList.toggle("hidden", !reviewing);
+            submitRow.classList.toggle("flex", reviewing);
+            const missing = lines.length - answeredCount(lines);
+            submitButton.disabled = !reviewing || !historyReady;
+            submitButton.textContent = missing ? "Submit with " + missing + " unanswered" : "Submit answers";
+            submitStatus.textContent = missing ? "Unanswered statements are recorded as no vote." : "All statements answered.";
 
-            const showVotes = admin && phase === "open";
-            const votes = Object.values(state.votes[index] || {}).filter((item) => item.value);
-            const trues = votes.filter((item) => item.value === "True").length;
-            const falses = votes.filter((item) => item.value === "False").length;
-            document.getElementById("chart").classList.toggle("hidden", !showVotes);
-            const totalVotes = trues + falses;
-            document.getElementById("true-count").textContent = String(trues);
-            document.getElementById("false-count").textContent = String(falses);
-            document.getElementById("true-bar").style.width = (totalVotes ? (trues / totalVotes) * 100 : 0) + "%";
-            document.getElementById("false-bar").style.width = (totalVotes ? (falses / totalVotes) * 100 : 0) + "%";
-
-            renderPeople(lines, index, admin, showVotes);
+            syncTimer(onStatement ? flowMode + ":" + index + ":" + flowStep : "");
+            saveFlow();
+            renderPeople(lines, admin);
             renderResults(lines, admin && phase === "closed");
         }
 
-        function renderPeople(lines, index, admin, showVotes) {
+        function renderReview(lines, visible) {
+            const panel = document.getElementById("review-panel");
+            panel.classList.toggle("hidden", !visible);
+            panel.classList.toggle("flex", visible);
+            if (!visible) return;
+            const list = document.getElementById("review-unanswered");
+            const revisit = document.getElementById("revisit-btn");
+            if (!historyReady) {
+                document.getElementById("review-summary").textContent = "Loading your answers...";
+                list.replaceChildren();
+                revisit.classList.add("hidden");
+                revisit.classList.remove("flex");
+                return;
+            }
+            const missing = unansweredIndexes(lines);
+            document.getElementById("review-summary").textContent = "You answered " + (lines.length - missing.length) + " of " + lines.length + " statements."
+                + (missing.length ? " Tap a statement below to answer it now." : " Everything is answered.");
+            list.replaceChildren();
+            for (const index of missing) {
+                const item = document.createElement("button");
+                item.type = "button";
+                item.className = "w-full text-left bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 flex items-start gap-3";
+                const number = document.createElement("span");
+                number.className = "shrink-0 text-xs font-semibold text-amber-300 mt-0.5";
+                number.textContent = "#" + (index + 1);
+                const text = document.createElement("span");
+                text.className = "text-sm text-slate-200";
+                text.textContent = lines[index];
+                item.append(number, text);
+                item.addEventListener("click", () => startRevisit([index]));
+                list.appendChild(item);
+            }
+            revisit.classList.toggle("hidden", !missing.length);
+            revisit.classList.toggle("flex", missing.length > 0);
+            document.getElementById("revisit-btn-text").textContent = "Revisit unanswered (" + missing.length + ")";
+        }
+
+        function unansweredIndexes(lines) {
+            return lines.map((_, index) => index).filter((index) => !myVote(index)?.value);
+        }
+
+        function advance() {
+            if (isAdmin() || state.phase !== "open" || state.submitted[ME]) return;
+            const lines = statements();
+            if (flowMode === "pass") {
+                if (viewIndex < lines.length - 1) viewIndex += 1;
+                else flowMode = "review";
+            } else if (flowMode === "revisit") {
+                revisitQueue = revisitQueue.slice(1).filter((index) => !myVote(index)?.value);
+                if (revisitQueue.length) viewIndex = revisitQueue[0];
+                else flowMode = "review";
+            } else {
+                return;
+            }
+            flowStep += 1;
+            render();
+        }
+
+        function startRevisit(indexes) {
+            if (!indexes.length) return;
+            revisitQueue = indexes.slice();
+            viewIndex = revisitQueue[0];
+            flowMode = "revisit";
+            flowStep += 1;
+            render();
+        }
+
+        function syncTimer(key) {
+            if (key === timerKey) return;
+            timerKey = key;
+            clearInterval(timerHandle);
+            timerHandle = null;
+            document.getElementById("timer-wrap").classList.toggle("hidden", !key);
+            if (!key) return;
+            timerEnd = Date.now() + STATEMENT_SECONDS * 1000;
+            tickTimer();
+            timerHandle = setInterval(tickTimer, 250);
+        }
+
+        function tickTimer() {
+            const left = Math.max(0, timerEnd - Date.now());
+            const seconds = Math.ceil(left / 1000);
+            document.getElementById("timer-label").textContent = seconds + "s";
+            const bar = document.getElementById("timer-bar");
+            bar.style.width = (left / (STATEMENT_SECONDS * 1000)) * 100 + "%";
+            bar.className = "h-full rounded-full " + (seconds <= 5 ? "bg-red-500" : seconds <= 15 ? "bg-amber-400" : "bg-indigo-500");
+            if (left === 0) advance();
+        }
+
+        function flowStorageKey() {
+            return "retro-flow-" + room;
+        }
+
+        function loadFlow() {
+            try {
+                const saved = JSON.parse(sessionStorage.getItem(flowStorageKey()) || "null");
+                if (!saved || !["pass", "review", "revisit"].includes(saved.mode)) return;
+                flowMode = saved.mode;
+                viewIndex = Number.isInteger(saved.index) ? saved.index : 0;
+                revisitQueue = Array.isArray(saved.queue) ? saved.queue.filter(Number.isInteger) : [];
+                if (flowMode === "revisit") {
+                    if (revisitQueue.length) viewIndex = revisitQueue[0];
+                    else flowMode = "review";
+                }
+            } catch {
+                sessionStorage.removeItem(flowStorageKey());
+            }
+        }
+
+        function saveFlow() {
+            if (!room || isAdmin()) return;
+            sessionStorage.setItem(flowStorageKey(), JSON.stringify({ mode: flowMode, index: viewIndex, queue: revisitQueue }));
+        }
+
+        function renderPeople(lines, admin) {
             const grid = document.getElementById("participants-grid");
             if (!grid) return;
             if (!admin || state.phase === "closed") {
                 grid.replaceChildren();
                 return;
             }
-            const people = Object.entries(state.users).sort((a, b) => a[1].at - b[1].at);
-            const votedHere = people.filter(([id]) => state.votes[index]?.[id]?.value).length;
-            document.getElementById("voter-count").textContent = votedHere + "/" + people.length + " voted on this statement";
+            const people = Object.entries(state.users)
+                .filter(([id]) => id !== state.adminId)
+                .sort((a, b) => a[1].at - b[1].at);
+            const submittedCount = people.filter(([id]) => state.submitted[id]).length;
+            document.getElementById("voter-count").textContent = submittedCount + " of " + people.length + " submitted";
             grid.replaceChildren();
+            if (!people.length) {
+                const empty = document.createElement("p");
+                empty.className = "col-span-full text-sm text-slate-400";
+                empty.textContent = "No participants yet. Share the QR code or invite link.";
+                grid.appendChild(empty);
+                return;
+            }
             for (const [id, person] of people) {
-                const card = document.createElement("div");
-                const mine = id === ME;
-                const choice = state.votes[index]?.[id];
+                const done = Boolean(state.submitted[id]);
                 const answered = lines.filter((_, statement) => state.votes[statement]?.[id]?.value).length;
-                card.className = "relative bg-slate-800/80 border rounded-xl p-4 flex flex-col items-center justify-center gap-3 " + (mine ? "border-indigo-500/50" : "border-slate-700");
+                const card = document.createElement("div");
+                card.className = "relative bg-slate-800/80 border rounded-xl p-4 flex flex-col items-center justify-center gap-3 " + (done ? "border-green-500/40" : "border-slate-700");
 
                 const avatar = document.createElement("div");
-                avatar.className = "w-12 h-12 rounded-full flex items-center justify-center shadow-inner text-white font-bold text-lg " + (mine ? "bg-indigo-600" : "bg-slate-700");
+                avatar.className = "w-12 h-12 rounded-full flex items-center justify-center shadow-inner text-white font-bold text-lg " + (done ? "bg-green-600" : "bg-slate-700");
                 avatar.textContent = initials(person.name);
                 card.appendChild(avatar);
 
                 const name = document.createElement("h4");
                 name.className = "text-slate-200 font-semibold truncate text-sm px-1 text-center w-full";
-                name.textContent = person.name + (mine ? " (You)" : "") + (id === state.adminId ? " · Host" : "");
+                name.textContent = person.name;
                 card.appendChild(name);
 
                 const progress = document.createElement("p");
                 progress.className = "text-[11px] text-slate-500";
-                progress.textContent = answered + "/" + lines.length + " answered" + (state.submitted[id] ? " · Submitted" : "");
+                progress.textContent = answered + "/" + lines.length + " answered";
                 card.appendChild(progress);
 
                 const pill = document.createElement("div");
-                if (showVotes && choice?.value === "True") {
-                    pill.className = "bg-green-500 text-white px-4 py-1.5 rounded-lg text-base font-bold w-full text-center";
-                    pill.textContent = "TRUE";
-                } else if (showVotes && choice?.value === "False") {
-                    pill.className = "bg-red-500 text-white px-4 py-1.5 rounded-lg text-base font-bold w-full text-center";
-                    pill.textContent = "FALSE";
-                } else if (choice?.value && mine) {
-                    pill.className = (choice.value === "True" ? "bg-green-500" : "bg-red-500") + " text-white px-4 py-1.5 rounded-lg text-base font-bold w-full text-center";
-                    pill.textContent = choice.value.toUpperCase();
-                } else if (choice?.value) {
+                if (done) {
                     pill.className = "bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-lg text-sm font-bold";
-                    pill.textContent = "Voted";
+                    pill.textContent = "Submitted";
                 } else {
                     pill.className = "bg-slate-900 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-sm";
-                    pill.textContent = "Waiting";
+                    pill.textContent = state.phase === "open" ? "Answering" : "Joined";
                 }
                 card.appendChild(pill);
-
-                if (showVotes && choice?.comment) {
-                    const note = document.createElement("p");
-                    note.className = "text-xs text-slate-300 text-center leading-snug";
-                    note.textContent = choice.comment;
-                    card.appendChild(note);
-                }
                 grid.appendChild(card);
             }
         }
 
-        function voteTotals(id, lines) {
-            let trues = 0;
-            let falses = 0;
-            lines.forEach((_, index) => {
-                const value = state.votes[index]?.[id]?.value;
-                if (value === "True") trues += 1;
-                else if (value === "False") falses += 1;
-            });
-            return { trues, falses };
-        }
-
-        function countBar(count, axisMax, color) {
-            const track = document.createElement("div");
-            track.className = "h-2.5";
-            const fill = document.createElement("div");
-            fill.className = "h-full rounded-r " + color;
-            fill.style.width = (count / axisMax) * 100 + "%";
-            track.appendChild(fill);
-            return track;
-        }
-
-        function countPair(trues, falses) {
-            const counts = document.createElement("span");
-            counts.className = "text-sm shrink-0 text-right";
-            const trueLabel = document.createElement("span");
-            trueLabel.className = "text-green-400 font-semibold";
-            trueLabel.textContent = "True " + trues;
-            const falseLabel = document.createElement("span");
-            falseLabel.className = "text-red-400 font-semibold ml-4";
-            falseLabel.textContent = "False " + falses;
-            counts.append(trueLabel, falseLabel);
-            return counts;
-        }
-
         function rememberSectionState() {
             const completion = document.getElementById("completion-section");
-            const participants = document.getElementById("participants-section");
             const questions = document.getElementById("questions-section");
             if (completion) completionOpen = completion.open;
-            if (participants) participantsOpen = participants.open;
             if (questions) questionsOpen = questions.open;
         }
 
@@ -784,132 +864,99 @@
             panel.classList.toggle("hidden", !visible);
             if (visible) panel.parentElement.insertBefore(panel, document.getElementById("phase-banner").nextSibling);
             document.getElementById("completion-section").open = completionOpen;
-            document.getElementById("participants-section").open = participantsOpen;
             document.getElementById("questions-section").open = questionsOpen;
-            if (!visible) {
-                selectedPerson = null;
-                return;
-            }
+            if (!visible) return;
 
-            const participants = Object.entries(state.users)
-                .filter(([id]) => id !== state.adminId)
-                .sort((a, b) => a[1].at - b[1].at);
+            const participants = Object.entries(state.users).filter(([id]) => id !== state.adminId);
             const completed = participants.filter(([id]) => state.submitted[id]);
-            const overall = participants.reduce((sum, [id]) => {
-                const totals = voteTotals(id, lines);
-                sum.trues += totals.trues;
-                sum.falses += totals.falses;
-                return sum;
-            }, { trues: 0, falses: 0 });
-            document.getElementById("participants-overall").replaceChildren(countPair(overall.trues, overall.falses));
             document.getElementById("completion-summary").textContent = participants.length
                 ? completed.length + " of " + participants.length + " participants submitted"
                 : "No participants have joined yet.";
 
-            if (selectedPerson && !state.users[selectedPerson]) selectedPerson = null;
-            const picker = document.getElementById("person-picker");
-            picker.replaceChildren();
-            if (!participants.length) return;
-
-            const axisMax = lines.length || 1;
-            const tickStep = axisMax <= 5 ? 1 : 2;
-            const ticks = [];
-            for (let mark = 0; mark <= axisMax; mark += tickStep) ticks.push(mark);
-            if (ticks[ticks.length - 1] !== axisMax) ticks.push(axisMax);
-            const chart = document.createElement("div");
-            chart.className = "space-y-1";
-            for (const [id, person] of participants) {
-                const totals = voteTotals(id, lines);
-                const row = document.createElement("button");
-                row.type = "button";
-                row.className = "grid w-full grid-cols-[5rem_1fr] sm:grid-cols-[7.5rem_1fr] items-center gap-x-3 rounded-lg px-1 py-1 text-left " + (id === selectedPerson ? "bg-indigo-600/15" : "hover:bg-slate-800/50");
-                row.setAttribute("aria-expanded", id === selectedPerson ? "true" : "false");
-                row.setAttribute("aria-label", person.name + ", True " + totals.trues + ", False " + totals.falses);
-                const name = document.createElement("span");
-                name.className = "text-sm font-medium text-right truncate " + (id === selectedPerson ? "text-indigo-200" : "text-slate-200");
-                name.title = person.name;
-                name.textContent = person.name;
-                const plot = document.createElement("div");
-                plot.className = "flex flex-col justify-center gap-1 border-l border-slate-600 py-1 min-h-9";
-                plot.style.backgroundImage = "linear-gradient(to right, rgba(148,163,184,0.22) 1px, transparent 1px)";
-                plot.style.backgroundSize = (100 / (ticks.length - 1)) + "% 100%";
-                plot.append(countBar(totals.trues, axisMax, "bg-green-500"), countBar(totals.falses, axisMax, "bg-red-500"));
-                row.append(name, plot);
-                row.addEventListener("click", () => {
-                    rememberSectionState();
-                    selectedPerson = selectedPerson === id ? null : id;
-                    render();
-                });
-                chart.appendChild(row);
-            }
-            const axis = document.createElement("div");
-            axis.className = "grid grid-cols-[5rem_1fr] sm:grid-cols-[7.5rem_1fr] gap-x-3";
-            axis.appendChild(document.createElement("div"));
-            const scale = document.createElement("div");
-            scale.className = "relative h-5 border-t border-slate-600";
-            ticks.forEach((mark, index) => {
-                const tick = document.createElement("span");
-                tick.className = "absolute top-1 text-[11px] text-slate-500";
-                tick.style.left = (index / (ticks.length - 1)) * 100 + "%";
-                if (index === 0) tick.classList.add("translate-x-0");
-                else if (index === ticks.length - 1) tick.classList.add("-translate-x-full");
-                else tick.classList.add("-translate-x-1/2");
-                tick.textContent = String(mark);
-                scale.appendChild(tick);
+            const stats = lines.map((line, index) => {
+                const values = Object.entries(state.votes[index] || {})
+                    .filter(([id]) => id !== state.adminId)
+                    .map(([, item]) => item.value);
+                const trues = values.filter((value) => value === "True").length;
+                const falses = values.filter((value) => value === "False").length;
+                const total = trues + falses;
+                return {
+                    index,
+                    line,
+                    total,
+                    truePct: total ? (trues / total) * 100 : 0,
+                    falsePct: total ? (falses / total) * 100 : 0,
+                    discuss: total > 0 && falses / total > 0.5
+                };
             });
-            axis.appendChild(scale);
-            const axisLabel = document.createElement("p");
-            axisLabel.className = "col-start-2 mt-4 text-center text-[11px] text-slate-500";
-            axisLabel.textContent = "Count";
-            axis.appendChild(axisLabel);
-            picker.append(chart, axis);
+            const discussCount = stats.filter((item) => item.discuss).length;
+            document.getElementById("discuss-summary").textContent = discussCount
+                ? discussCount + " to discuss"
+                : "None over 50% False";
 
-            if (selectedPerson) {
-                const person = state.users[selectedPerson];
-                const answers = document.createElement("div");
-                answers.className = "space-y-2 mt-4";
-                const heading = document.createElement("p");
-                heading.className = "text-sm font-semibold text-white";
-                heading.textContent = person.name;
-                answers.appendChild(heading);
-                lines.forEach((line, index) => {
-                    const choice = state.votes[index]?.[selectedPerson];
-                    const block = document.createElement("div");
-                    block.className = "bg-slate-950/60 border border-slate-700 rounded-xl p-3";
-                    const title = document.createElement("p");
-                    title.className = "text-sm text-slate-200";
-                    title.textContent = (index + 1) + ". " + line;
-                    const value = document.createElement("p");
-                    value.className = "mt-1 text-sm font-semibold " + (choice?.value === "False" ? "text-red-400" : choice?.value === "True" ? "text-green-400" : "text-slate-500");
-                    value.textContent = choice?.value === "True" ? "True" : choice?.value === "False" ? "False" : "No vote";
-                    block.append(title, value);
-                    if (choice?.comment) {
-                        const note = document.createElement("p");
-                        note.className = "mt-1 text-sm text-slate-300";
-                        note.textContent = choice.comment;
-                        block.appendChild(note);
-                    }
-                    answers.appendChild(block);
-                });
-                picker.appendChild(answers);
-            }
+            const sortKey = questionSort.startsWith("false") ? "falsePct" : "truePct";
+            const direction = questionSort.endsWith("desc") ? -1 : 1;
+            const sorted = stats.slice().sort((a, b) => {
+                if (questionSort === "order") return a.index - b.index;
+                if (!a.total !== !b.total) return a.total ? -1 : 1;
+                return (a[sortKey] - b[sortKey]) * direction || a.index - b.index;
+            });
+            document.getElementById("question-sort").value = questionSort;
 
             const questions = document.getElementById("question-results");
             questions.replaceChildren();
-            lines.forEach((line, index) => {
-                const votes = Object.entries(state.votes[index] || {})
-                    .filter(([id]) => id !== state.adminId)
-                    .map(([, item]) => item);
-                const trues = votes.filter((item) => item.value === "True").length;
-                const falses = votes.filter((item) => item.value === "False").length;
+            for (const item of sorted) {
                 const row = document.createElement("div");
-                row.className = "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-3";
+                row.dataset.statement = String(item.index + 1);
+                row.className = "border rounded-xl px-4 py-3 " + (item.discuss ? "border-red-500/60 bg-red-500/10" : "border-slate-700 bg-slate-900/70");
+
+                const top = document.createElement("div");
+                top.className = "flex items-start justify-between gap-3";
                 const title = document.createElement("p");
                 title.className = "text-sm text-slate-200";
-                title.textContent = (index + 1) + ". " + line;
-                row.append(title, countPair(trues, falses));
+                title.textContent = (item.index + 1) + ". " + item.line;
+                top.appendChild(title);
+                if (item.discuss) {
+                    const badge = document.createElement("span");
+                    badge.className = "discuss-badge shrink-0 inline-flex items-center gap-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-semibold px-2 py-0.5";
+                    badge.textContent = "Discuss";
+                    top.appendChild(badge);
+                }
+
+                const bar = document.createElement("div");
+                bar.className = "mt-3 h-3 rounded-full bg-slate-800 overflow-hidden flex";
+                const trueFill = document.createElement("div");
+                trueFill.className = "h-full bg-green-500";
+                trueFill.style.width = item.truePct + "%";
+                const falseFill = document.createElement("div");
+                falseFill.className = "h-full bg-red-500";
+                falseFill.style.width = item.falsePct + "%";
+                bar.append(trueFill, falseFill);
+
+                const footer = document.createElement("div");
+                footer.className = "mt-2 flex items-center justify-between gap-3 text-xs";
+                if (item.total) {
+                    const pcts = document.createElement("span");
+                    const trueLabel = document.createElement("span");
+                    trueLabel.className = "text-green-400 font-semibold";
+                    trueLabel.textContent = "True " + Math.round(item.truePct) + "%";
+                    const falseLabel = document.createElement("span");
+                    falseLabel.className = "text-red-400 font-semibold ml-4";
+                    falseLabel.textContent = "False " + Math.round(item.falsePct) + "%";
+                    pcts.append(trueLabel, falseLabel);
+                    const count = document.createElement("span");
+                    count.className = "text-slate-500";
+                    count.textContent = item.total + (item.total === 1 ? " response" : " responses");
+                    footer.append(pcts, count);
+                } else {
+                    const none = document.createElement("span");
+                    none.className = "text-slate-500";
+                    none.textContent = "No responses";
+                    footer.appendChild(none);
+                }
+                row.append(top, bar, footer);
                 questions.appendChild(row);
-            });
+            }
         }
 
         function initials(name) {
@@ -918,20 +965,10 @@
         }
 
         async function submitAnswers() {
-            if (isAdmin() || state.phase !== "open" || state.submitted[ME]) return;
-            clearTimeout(commentTimer);
-            const comment = document.getElementById("comment-input").value.trim();
-            const current = myVote();
-            if (current?.value) {
-                pendingVotes[viewIndex] = { value: current.value, comment };
-                await send({ t: "vote", id: ME, i: viewIndex, value: current.value, comment });
-            }
+            if (isAdmin() || state.phase !== "open" || state.submitted[ME] || !historyReady) return;
             const lines = statements();
-            if (answeredCount(lines) !== lines.length) {
-                showToast("Answer every statement before submitting");
-                render();
-                return;
-            }
+            const missing = lines.length - answeredCount(lines);
+            if (missing && !confirm("You have " + missing + " unanswered statement" + (missing === 1 ? "" : "s") + ". They will be recorded as no vote. Submit anyway?")) return;
             await send({ t: "submit", id: ME });
             showToast("Answers submitted");
         }
@@ -940,28 +977,9 @@
             if (state.phase !== "open" || state.submitted[ME]) return;
             const current = myVote();
             const nextValue = current?.value === value ? null : value;
-            const comment = document.getElementById("comment-input").value.trim();
-            pendingVotes[viewIndex] = { value: nextValue, comment };
+            pendingVotes[viewIndex] = { value: nextValue };
             render();
-            send({ t: "vote", id: ME, i: viewIndex, value: nextValue, comment });
-        }
-
-        function syncComment(index) {
-            const current = myVote(index);
-            if (!current?.value || state.phase !== "open") return;
-            send({
-                t: "vote",
-                id: ME,
-                i: index,
-                value: current.value,
-                comment: document.getElementById("comment-input").value.trim()
-            });
-        }
-
-        function move(delta) {
-            const lines = statements();
-            viewIndex = Math.max(0, Math.min(lines.length - 1, viewIndex + delta));
-            render();
+            send({ t: "vote", id: ME, i: viewIndex, value: nextValue });
         }
 
         function roomCode() {
