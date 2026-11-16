@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="admin-config.js"></script>
     <style>
         body {
             font-family: 'Atkinson Hyperlegible', sans-serif;
@@ -36,7 +37,6 @@
         }
         .selected-true { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); border-color: #22c55e; }
         .selected-false { box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); border-color: #ef4444; }
-        .template-card.selected { border-color: #818cf8; box-shadow: 0 0 0 1px #818cf8; }
         .picked-user {
             animation: pulse-ring 2s infinite;
             border-color: #fbbf24 !important;
@@ -97,22 +97,29 @@
                     </div>
                     <h1 class="text-3xl font-bold text-white tracking-tight">Retro Poker</h1>
                     <p id="login-greeting" class="hidden text-indigo-300 font-semibold mt-3 text-base"></p>
-                    <p id="login-blurb" class="text-slate-400 mt-2 text-sm">Choose a question template, start the room, then share the invite link. Only you will see the results, as anonymous totals per statement.</p>
+                    <p id="login-blurb" class="text-slate-400 mt-2 text-sm">Admin sign in. Create the TEPDK retrospective room, then share the QR code or invite link. Only you will see the results, as anonymous totals per statement.</p>
                 </div>
-                <div class="space-y-5">
-                    <div>
+                <form id="login-form" class="space-y-5" novalidate>
+                    <div id="name-field" class="hidden">
                         <label class="block text-sm font-medium text-slate-300 mb-1.5" for="nickname-input">Your name</label>
-                        <input type="text" id="nickname-input" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="e.g. Shibin" maxlength="40">
+                        <input type="text" id="nickname-input" autocomplete="name" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="e.g. Shibin" maxlength="40">
                     </div>
-                    <div id="template-picker" class="space-y-2">
-                        <p class="text-sm font-medium text-slate-300">Question template</p>
-                        <div id="template-list" class="space-y-2"></div>
+                    <div id="admin-fields" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1.5" for="admin-user">User ID</label>
+                            <input type="text" id="admin-user" autocomplete="username" autocapitalize="off" spellcheck="false" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" maxlength="80">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1.5" for="admin-pass">Password</label>
+                            <input type="password" id="admin-pass" autocomplete="current-password" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" maxlength="200">
+                        </div>
+                        <p id="login-error" class="hidden text-sm text-rose-400" role="alert"></p>
                     </div>
-                    <button id="join-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2">
-                        <span id="join-btn-text">Create session</span>
+                    <button id="join-btn" type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2">
+                        <span id="join-btn-text">Sign in and create session</span>
                         <i class="ph ph-arrow-right font-bold"></i>
                     </button>
-                </div>
+                </form>
             </div>
         </div>
 
@@ -373,25 +380,27 @@
         const nicknameInput = document.getElementById("nickname-input");
         const joinBtn = document.getElementById("join-btn");
         const joinBtnText = document.getElementById("join-btn-text");
-        const templatePicker = document.getElementById("template-picker");
+        const adminUserInput = document.getElementById("admin-user");
+        const adminPassInput = document.getElementById("admin-pass");
+        const loginError = document.getElementById("login-error");
 
         if (room) {
             joinBtnText.textContent = "Join session";
-            templatePicker.classList.add("hidden");
+            document.getElementById("admin-fields").classList.add("hidden");
+            document.getElementById("name-field").classList.remove("hidden");
             const loginGreeting = document.getElementById("login-greeting");
             loginGreeting.textContent = "Welcome to the TEPDK Retrospective!";
             loginGreeting.classList.remove("hidden");
             document.getElementById("login-blurb").textContent = "Thank you for joining. Enter your name below to enter the polling session. Your answers are anonymous.";
         }
         if (myName) nicknameInput.value = myName;
-        renderTemplateChoices();
-        nicknameInput.focus();
+        (room ? nicknameInput : adminUserInput).focus();
         document.querySelectorAll("i.ph, i.ph-fill").forEach((icon) => icon.setAttribute("aria-hidden", "true"));
 
-        nicknameInput.addEventListener("keydown", (event) => {
-            if (event.key === "Enter") joinOrCreate();
+        document.getElementById("login-form").addEventListener("submit", (event) => {
+            event.preventDefault();
+            joinOrCreate();
         });
-        joinBtn.addEventListener("click", joinOrCreate);
         document.getElementById("btn-true").addEventListener("click", () => castVote("True"));
         document.getElementById("btn-false").addEventListener("click", () => castVote("False"));
         document.getElementById("next-btn").addEventListener("click", advance);
@@ -418,44 +427,60 @@
             return { users: {}, votes: {}, submitted: {}, adminId: null, templateId: null, phase: "setup", phaseAt: 0, controlAt: {} };
         }
 
-        function renderTemplateChoices() {
-            const list = document.getElementById("template-list");
-            list.replaceChildren();
-            for (const template of TEMPLATES) {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "template-card w-full text-left bg-slate-900 border border-slate-700 rounded-xl p-4 " + (template.id === selectedTemplate ? "selected" : "");
-                const title = document.createElement("div");
-                title.className = "text-white font-semibold";
-                title.textContent = template.name;
-                const detail = document.createElement("div");
-                detail.className = "text-sm text-slate-400 mt-1";
-                detail.textContent = template.description + " " + template.statements.length + " statements.";
-                const preview = document.createElement("ol");
-                preview.className = "mt-3 space-y-1 text-xs text-slate-500 list-decimal list-inside";
-                template.statements.forEach((line) => {
-                    const item = document.createElement("li");
-                    item.textContent = line;
-                    preview.appendChild(item);
-                });
-                button.append(title, detail, preview);
-                button.addEventListener("click", () => {
-                    selectedTemplate = template.id;
-                    renderTemplateChoices();
-                });
-                list.appendChild(button);
-            }
+        function showLoginError(message) {
+            loginError.textContent = message;
+            loginError.classList.toggle("hidden", !message);
         }
 
-        function joinOrCreate() {
-            const name = nicknameInput.value.trim();
-            if (!name) {
-                showToast("Enter your name");
-                return;
+        async function hashPassword(password, saltHex, iterations) {
+            const salt = new Uint8Array(saltHex.match(/../g).map((byte) => parseInt(byte, 16)));
+            const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+            const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, 256);
+            return Array.from(new Uint8Array(bits), (byte) => byte.toString(16).padStart(2, "0")).join("");
+        }
+
+        async function verifyAdmin(userId, password) {
+            const config = window.RETRO_ADMIN;
+            if (!config?.userId || !config?.salt || !config?.passwordHash) return { ok: false, reason: "Admin login is not configured yet." };
+            const hash = await hashPassword(password, config.salt, config.iterations || 200000);
+            if (userId !== config.userId || hash !== config.passwordHash) return { ok: false, reason: "Incorrect user ID or password." };
+            return { ok: true, name: config.displayName || config.userId };
+        }
+
+        async function joinOrCreate() {
+            const creating = !room;
+            let name;
+            if (creating) {
+                const userId = adminUserInput.value.trim();
+                const password = adminPassInput.value;
+                if (!userId || !password) {
+                    showLoginError("Enter your user ID and password.");
+                    return;
+                }
+                showLoginError("");
+                joinBtn.disabled = true;
+                joinBtnText.textContent = "Signing in...";
+                const result = await verifyAdmin(userId, password).catch(() => ({ ok: false, reason: "Sign in failed. Try again." }));
+                if (!result.ok) {
+                    joinBtn.disabled = false;
+                    joinBtnText.textContent = "Sign in and create session";
+                    adminPassInput.value = "";
+                    adminPassInput.focus();
+                    showLoginError(result.reason);
+                    return;
+                }
+                showLoginError("");
+                adminPassInput.value = "";
+                name = result.name;
+            } else {
+                name = nicknameInput.value.trim();
+                if (!name) {
+                    showToast("Enter your name");
+                    return;
+                }
             }
             myName = name;
             sessionStorage.setItem("retro-name", name);
-            const creating = !room;
             if (creating) {
                 room = "rp" + crypto.randomUUID().replaceAll("-", "");
                 createdByMe = true;
