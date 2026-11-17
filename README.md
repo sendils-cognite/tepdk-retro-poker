@@ -11,8 +11,8 @@ GitHub Pages serves `index.html` from the `main` branch root. After a deploy, ap
 Run a short, timed poll in the room so every participant answers the same ten statements, then discuss the statements that landed mostly False.
 
 - Host creates a room, shares a link or QR code, opens the poll, and later closes it.
-- Participants join with a display name, answer True or False under a per-statement timer, revisit skips, then submit.
-- The host sees who joined and who submitted, but only **aggregate** True / False percentages per statement. Answers are never shown against a name.
+- Participants join with a free-form display name, answer True or False under a per-statement timer, optionally upvote statements for meeting discussion, revisit skips, leave 3–4 week improvement notes, then submit.
+- The live host view shows who joined / submitted plus **aggregate** True / False percentages and upvote counts. **CSV / XLSX export** includes each participant’s name with their answers, upvotes, and improvement notes.
 
 ## How it works
 
@@ -24,9 +24,9 @@ GitHub Pages serves the static app (HTML + Tailwind CDN + admin-config.js)
 
 1. **Host** signs in with the admin user ID and password, creates a room, and shares the invite URL / QR.
 2. **Participants** open the invite, enter a name, and wait until the host starts the poll.
-3. Each statement has a countdown (default **45 seconds**). Choosing True or False fills the whole button. Unanswered statements can be revisited before final submit.
-4. After submit, the participant sees a thank-you screen with their name.
-5. When the host finishes the poll, results show True / False percentages, highlight statements where False is over 50% (**Discuss**), and support sorting by most / least True or False.
+3. Each statement has a countdown (default **45 seconds**). Choosing True or False fills the whole button. An **upvote** control sits at the top of the statement card so participants can flag discussion points after answering.
+4. After the timed pass and review, participants write improvement notes for the next 3–4 weeks, then submit and see a thank-you screen.
+5. When the host finishes the poll, results show True / False percentages, upvote counts, improvement notes by name, sorting (including most / least upvoted), and CSV / XLSX export. Statements where False is over 50% still get a **Discuss** badge.
 
 Room state is rebuilt on every client from a shared op log on [ntfy.sh](https://ntfy.sh). There is no app server and no database.
 
@@ -38,6 +38,8 @@ Room state is rebuilt on every client from a shared op log on [ntfy.sh](https://
 | `join` | Participant enters with a display name |
 | `phase` | Host sets `open` or `closed` |
 | `vote` | One True / False answer for statement index `i` |
+| `upvote` | Toggle discussion upvote for statement index `i` |
+| `improve` | Participant improvement notes text |
 | `submit` | Participant locks in their answers |
 | `batch` | Several ops in one ntfy message (used by the demo) |
 
@@ -55,6 +57,7 @@ Ops are ordered by `at`. Only the host’s `phase` ops control the poll. Identit
 | [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (jsDelivr) | Invite QR on the host screen |
 | [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible) | Readable UI font |
 | Web Crypto (PBKDF2-SHA256) | Admin password check in the browser |
+| [SheetJS](https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js) (jsDelivr) | XLSX export on demand |
 | Python 3 + `Makefile` | Offline demo that seeds a finished five-person poll |
 
 No build step, bundler, Node app, or Firebase / GCP backend.
@@ -87,18 +90,28 @@ Open [http://127.0.0.1:8765/](http://127.0.0.1:8765/). Sync still uses the publi
 
 1. Open the site and sign in as the survey admin.
 2. Create a room and share the invite link or QR.
-3. Watch the people board for join / answering / submitted status (no answers attached to names).
+3. Watch the people board for join / answering / submitted status.
 4. Start the poll, then Finish when ready.
-5. Review aggregate percentages, Discuss badges, and the sort control.
+5. Review aggregate percentages, upvote counts, Discuss badges, improvement notes, sort controls (including most / least upvoted), and export CSV or XLSX.
 
 ### Participant
 
-1. Open the invite link and enter a display name.
+1. Open the invite link and enter a display name (any text; not validated).
 2. When the poll opens, answer each statement True or False within the timer.
-3. At the end, review unanswered items, optionally revisit them, then submit.
-4. See the thank-you page.
+3. After answering, use the upvote control at the top if you want that statement discussed in the meeting.
+4. Review unanswered items, optionally revisit them, continue to improvement notes, then submit.
+5. See the thank-you page.
 
-Names are kept for greeting and the people board status only. They are not linked to individual answers in the host results.
+Live results stay as combined totals. Export files include the name each participant entered with their answers, upvotes, and notes.
+
+### Export files
+
+After the poll is closed, the host can download:
+
+- **Summary CSV** — per-statement True / False counts, percentages, upvotes, Discuss flag
+- **Answers CSV** — one row per participant per statement (`Name`, answer, upvoted)
+- **Improvements CSV** — `Name`, improvement notes
+- **XLSX** — one workbook with `Summary`, `Answers`, and `Improvements` sheets
 
 ## Admin setup
 
@@ -145,7 +158,7 @@ Optional: point the printed links at a local server:
 make demo-setup BASE_URL=http://127.0.0.1:8765
 ```
 
-The script prints a **host dashboard** URL (`?room=…&host=…`) and an **invite** URL. The host query parameter opens that room’s dashboard without the admin login form. Use it for demos only; anyone with the host id can open the same view, and the id is visible on the public ntfy topic for that room.
+The script prints a **host dashboard** URL (`?room=…&host=…`) and an **invite** URL. Each of the five demo users gets random True / False answers, a few upvotes, improvement notes, and a submit. The host query parameter opens that room’s dashboard without the admin login form. Use it for demos only; anyone with the host id can open the same view, and the id is visible on the public ntfy topic for that room.
 
 ## Useful URL parameters
 

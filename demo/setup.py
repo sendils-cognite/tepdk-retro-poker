@@ -13,6 +13,13 @@ import uuid
 
 NAMES: list[str] = ["Amina", "Lars", "Priya", "Chen", "Sofia"]
 STATEMENT_COUNT = 10
+IMPROVEMENTS: list[str] = [
+    "- Clearer ownership on blocked work\n- Weekly demo of pipeline status",
+    "- Faster answers from Cognite SMEs\n- Written definition of done",
+    "- More reusable templates\n- Less rework between milestones",
+    "- Shared runbooks for Toolkit deploy\n- Earlier technical review",
+    "- Better handoff notes\n- Room to fix quality before go-live",
+]
 
 
 def main() -> None:
@@ -55,18 +62,26 @@ def main() -> None:
                 used.add(pattern)
                 return pattern
 
-    people = [(str(uuid.uuid4()), name, random_answers()) for name in NAMES]
+    people = [
+        (str(uuid.uuid4()), name, random_answers(), IMPROVEMENTS[index % len(IMPROVEMENTS)])
+        for index, name in enumerate(NAMES)
+    ]
     setup_ops = [stamp({"t": "create", "id": host_id, "name": "Survey Admin", "template": "tepdk-retro"})]
-    setup_ops += [stamp({"t": "join", "id": user_id, "name": name}) for user_id, name, _pattern in people]
+    setup_ops += [stamp({"t": "join", "id": user_id, "name": name}) for user_id, name, _pattern, _note in people]
     setup_ops.append(stamp({"t": "phase", "phase": "open", "id": host_id}))
     publish(stamp({"t": "batch", "ops": setup_ops}))
     print("Room created and polling started")
 
-    for user_id, name, pattern in people:
-        answer_ops = [
-            stamp({"t": "vote", "id": user_id, "i": index, "value": "True" if mark == "T" else "False"})
-            for index, mark in enumerate(pattern)
-        ]
+    for user_id, name, pattern, note in people:
+        answer_ops: list[dict[str, object]] = []
+        upvote_indexes = set(random.sample(range(STATEMENT_COUNT), k=random.randint(1, 3)))
+        for index, mark in enumerate(pattern):
+            answer_ops.append(
+                stamp({"t": "vote", "id": user_id, "i": index, "value": "True" if mark == "T" else "False"})
+            )
+            if index in upvote_indexes:
+                answer_ops.append(stamp({"t": "upvote", "id": user_id, "i": index, "value": True}))
+        answer_ops.append(stamp({"t": "improve", "id": user_id, "text": note}))
         answer_ops.append(stamp({"t": "submit", "id": user_id}))
         publish(stamp({"t": "batch", "ops": answer_ops}))
         print(f"{name} submitted")
@@ -77,8 +92,8 @@ def main() -> None:
     invite = f"{base}/?room={room}"
     host = f"{invite}&host={host_id}"
     print(f"Room {room}")
-    print("Five participants submitted random answers:")
-    for _user_id, name, pattern in people:
+    print("Five participants submitted random answers, upvotes, and improvement notes:")
+    for _user_id, name, pattern, _note in people:
         print(f"  {name}: {pattern.count('T')} true, {pattern.count('F')} false")
     print(f"Host dashboard: {host}")
     print(f"Invite link: {invite}")

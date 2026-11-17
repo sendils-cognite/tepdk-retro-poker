@@ -48,6 +48,12 @@
         #vote-row .vote-btn.selected-false { background-color: #dc2626; border-color: #fca5a5; }
         #vote-row .vote-btn.selected-true .vote-icon,
         #vote-row .vote-btn.selected-false .vote-icon { color: #ffffff; }
+        .upvote-btn.selected-upvote {
+            background-color: rgba(245, 158, 11, 0.2);
+            border-color: #fbbf24;
+            color: #fde68a;
+        }
+        .upvote-btn:not(:disabled):hover { border-color: #fbbf24; }
         .timer-box { transition: background-color 0.3s ease, border-color 0.3s ease; }
         .timer-ring-track { stroke: rgba(148, 163, 184, 0.2); }
         .timer-calm { background-color: rgba(8, 145, 178, 0.12); border-color: rgba(34, 211, 238, 0.45); }
@@ -188,7 +194,7 @@
                 <h1 id="thanks-title" class="mt-4 text-3xl sm:text-4xl font-bold text-white tracking-tight">Thank you!</h1>
                 <p id="thanks-body" class="mt-3 text-base text-slate-300 leading-relaxed"></p>
                 <p id="thanks-detail" class="mt-4 text-sm text-slate-400"></p>
-                <p class="mt-1 text-sm text-slate-400">Your answers are anonymous. The host only sees combined totals.</p>
+                <p class="mt-1 text-sm text-slate-400">Live results use combined totals. The host export keeps the name you entered with your answers and notes.</p>
                 <p class="mt-6 text-xs text-slate-500">You can close this page now.</p>
             </div>
         </div>
@@ -247,7 +253,14 @@
                         <i class="ph ph-chat-centered-text"></i>
                         <span id="statement-count">Statement 1 of 10</span>
                     </div>
-                    <p id="statement-text" class="text-white text-lg sm:text-xl md:text-2xl font-medium mt-3 leading-snug"></p>
+                    <div id="upvote-row" class="mt-3 mb-3">
+                        <button id="btn-upvote" type="button" disabled class="upvote-btn w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-600 bg-slate-900/70 px-4 py-2.5 text-sm font-semibold text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed" aria-pressed="false">
+                            <i class="ph-fill ph-arrow-fat-up text-lg" aria-hidden="true"></i>
+                            <span id="upvote-label">Want to discuss this in the meeting? Upvote it</span>
+                        </button>
+                        <p id="upvote-hint" class="mt-1.5 text-xs text-slate-400">Answer True or False first, then upvote if this should come up in the meeting.</p>
+                    </div>
+                    <p id="statement-text" class="text-white text-lg sm:text-xl md:text-2xl font-medium leading-snug"></p>
                     <div id="answer-progress" class="hidden mt-4">
                         <div class="flex items-center justify-between text-xs font-bold text-slate-300 mb-1.5">
                             <span>Answered</span>
@@ -302,12 +315,37 @@
                     </button>
                 </div>
 
+                <div id="improve-panel" class="hidden glass-panel rounded-2xl p-4 sm:p-6 flex-col gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2"><i class="ph ph-lightbulb text-amber-300"></i> Before you submit</h3>
+                        <p class="text-sm text-slate-300 mt-2">What kind of improvement would you like to see after 3 to 4 weeks time?</p>
+                        <p class="text-xs text-slate-400 mt-1">Use bullet points if you have more than one idea. Your name is kept with these notes for the host export.</p>
+                    </div>
+                    <label class="block">
+                        <span class="sr-only">Improvement notes</span>
+                        <textarea id="improve-input" rows="6" maxlength="2000" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="- Faster feedback on blocked work&#10;- Clearer definition of done&#10;- ..."></textarea>
+                    </label>
+                    <p id="improve-error" class="hidden text-sm text-rose-300">Add at least one improvement note before submitting.</p>
+                </div>
+
                 <div id="submit-row" class="hidden flex-col items-center gap-2">
                     <button id="submit-answers" disabled class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3.5 sm:py-3 px-8 rounded-xl shadow-lg shadow-indigo-500/30">Submit answers</button>
                     <p id="submit-status" class="text-xs text-slate-400 text-center"></p>
                 </div>
 
                 <div id="results" class="hidden space-y-4">
+                    <div id="export-row" class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-base font-semibold text-white flex items-center gap-2"><i class="ph ph-download-simple text-indigo-300"></i> Export poll results</h3>
+                            <p class="text-xs text-slate-400 mt-1">Includes participant names, answers, upvotes, and improvement notes.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="export-summary-csv" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium py-2.5 px-4 rounded-xl border border-slate-700 text-sm">Summary CSV</button>
+                            <button id="export-answers-csv" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium py-2.5 px-4 rounded-xl border border-slate-700 text-sm">Answers CSV</button>
+                            <button id="export-improvements-csv" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium py-2.5 px-4 rounded-xl border border-slate-700 text-sm">Improvements CSV</button>
+                            <button id="export-xlsx" type="button" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl text-sm">Download XLSX</button>
+                        </div>
+                    </div>
                     <details id="questions-section" class="results-section glass-panel rounded-2xl p-4 sm:p-6" open>
                         <summary class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                             <span class="flex items-center gap-2 text-lg font-semibold text-white">
@@ -326,7 +364,8 @@
                             <div class="flex items-center gap-4 text-xs text-slate-400">
                                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-green-500"></span>True</span>
                                 <span class="flex items-center gap-1.5"><span class="bar-false w-3 h-3 rounded-sm"></span>False</span>
-                                <span>Anonymous totals</span>
+                                <span class="flex items-center gap-1.5"><i class="ph-fill ph-arrow-fat-up text-amber-300"></i>Upvotes</span>
+                                <span>Live totals; export includes names</span>
                             </div>
                             <label class="flex items-center gap-2 text-sm text-slate-300">
                                 <span class="shrink-0">Sort by</span>
@@ -336,10 +375,20 @@
                                     <option value="false-asc">Least False first</option>
                                     <option value="true-desc">Most True first</option>
                                     <option value="true-asc">Least True first</option>
+                                    <option value="upvote-desc">Most upvoted first</option>
+                                    <option value="upvote-asc">Least upvoted first</option>
                                 </select>
                             </label>
                         </div>
                         <div id="question-results" class="mt-4 space-y-2"></div>
+                    </details>
+                    <details id="improvements-section" class="results-section glass-panel rounded-2xl p-4 sm:p-6" open>
+                        <summary class="flex items-center gap-2 text-lg font-semibold text-white">
+                            <i class="ph ph-caret-right chevron text-slate-400"></i>
+                            Improvements
+                            <span id="improvements-count" class="ml-2 bg-slate-800 text-slate-300 text-xs py-1 px-2.5 rounded-full font-medium">0</span>
+                        </summary>
+                        <div id="improvements-list" class="mt-4 space-y-3"></div>
                     </details>
                 </div>
 
@@ -400,11 +449,15 @@
         const TIMER_RING = 2 * Math.PI * 24;
         let thanksShown = false;
         let questionsOpen = true;
+        let improvementsOpen = true;
         let questionSort = "order";
+        let improveDraft = "";
         let source = null;
         let seen = new Set();
         let ops = [];
         const pendingVotes = {};
+        const pendingUpvotes = {};
+        let sheetJsPromise = null;
         let state = emptyState();
 
         const loginScreen = document.getElementById("login-screen");
@@ -435,15 +488,28 @@
         });
         document.getElementById("btn-true").addEventListener("click", () => castVote("True"));
         document.getElementById("btn-false").addEventListener("click", () => castVote("False"));
+        document.getElementById("btn-upvote").addEventListener("click", castUpvote);
         document.getElementById("next-btn").addEventListener("click", advance);
         document.getElementById("revisit-btn").addEventListener("click", () => startRevisit(unansweredIndexes(statements())));
         document.getElementById("question-sort").addEventListener("change", (event) => {
             questionSort = event.target.value;
             render();
         });
+        document.getElementById("improve-input").addEventListener("input", (event) => {
+            improveDraft = event.target.value;
+            document.getElementById("improve-error").classList.add("hidden");
+            saveFlow();
+        });
         document.getElementById("start-poll").addEventListener("click", () => send({ t: "phase", phase: "open", id: ME }));
         document.getElementById("finish-poll").addEventListener("click", () => send({ t: "phase", phase: "closed", id: ME }));
-        document.getElementById("submit-answers").addEventListener("click", submitAnswers);
+        document.getElementById("submit-answers").addEventListener("click", () => {
+            if (flowMode === "review") goToImprove();
+            else submitAnswers();
+        });
+        document.getElementById("export-summary-csv").addEventListener("click", () => exportCsv("summary"));
+        document.getElementById("export-answers-csv").addEventListener("click", () => exportCsv("answers"));
+        document.getElementById("export-improvements-csv").addEventListener("click", () => exportCsv("improvements"));
+        document.getElementById("export-xlsx").addEventListener("click", exportXlsx);
         document.getElementById("copy-link").addEventListener("click", copyInviteLink);
         document.getElementById("share-copy").addEventListener("click", copyInviteLink);
         document.getElementById("go-dashboard").addEventListener("click", showPokerScreen);
@@ -456,7 +522,18 @@
             if (event.key === "Escape") closeQrOverlay();
         });
         function emptyState() {
-            return { users: {}, votes: {}, submitted: {}, adminId: null, templateId: null, phase: "setup", phaseAt: 0, controlAt: {} };
+            return {
+                users: {},
+                votes: {},
+                upvotes: {},
+                improvements: {},
+                submitted: {},
+                adminId: null,
+                templateId: null,
+                phase: "setup",
+                phaseAt: 0,
+                controlAt: {}
+            };
         }
 
         function showLoginError(message) {
@@ -593,7 +670,7 @@
 
         function rebuild() {
             const next = emptyState();
-            const rank = { create: 0, join: 1, phase: 2, reset: 3, vote: 4, submit: 5 };
+            const rank = { create: 0, join: 1, phase: 2, reset: 3, vote: 4, upvote: 5, improve: 6, submit: 7 };
             const ordered = ops.slice().sort((a, b) => a.at - b.at || (rank[a.t] ?? 9) - (rank[b.t] ?? 9));
             for (const op of ordered) {
                 if ((op.t === "create" || op.t === "join") && op.id && op.name) {
@@ -610,6 +687,7 @@
                     next.phaseAt = op.at;
                 } else if (op.t === "reset" && Number.isInteger(op.i) && next.phase === "open") {
                     next.votes[op.i] = {};
+                    next.upvotes[op.i] = {};
                     next.controlAt["x" + op.i] = op.at;
                 } else if (op.t === "vote" && op.id && Number.isInteger(op.i)) {
                     if (next.phase !== "open") continue;
@@ -618,11 +696,25 @@
                     next.votes[op.i] = next.votes[op.i] || {};
                     const current = next.votes[op.i][op.id];
                     if (!current || op.at >= current.at) {
-                        next.votes[op.i][op.id] = {
-                            value: op.value === "True" || op.value === "False" ? op.value : null,
-                            at: op.at
-                        };
+                        const value = op.value === "True" || op.value === "False" ? op.value : null;
+                        next.votes[op.i][op.id] = { value, at: op.at };
+                        if (!value) {
+                            next.upvotes[op.i] = next.upvotes[op.i] || {};
+                            delete next.upvotes[op.i][op.id];
+                        }
                     }
+                } else if (op.t === "upvote" && op.id && Number.isInteger(op.i)) {
+                    if (next.phase !== "open") continue;
+                    const resetAt = next.controlAt["x" + op.i] || 0;
+                    if (op.at < resetAt) continue;
+                    next.upvotes[op.i] = next.upvotes[op.i] || {};
+                    // Keep upvote even if the matching vote SSE is still in flight.
+                    if (op.value === true) next.upvotes[op.i][op.id] = { at: op.at };
+                    else delete next.upvotes[op.i][op.id];
+                } else if (op.t === "improve" && op.id && typeof op.text === "string") {
+                    if (next.phase !== "open") continue;
+                    const text = String(op.text).trim().slice(0, 2000);
+                    if (text) next.improvements[op.id] = { text, at: op.at };
                 } else if (op.t === "submit" && op.id && next.phase === "open") {
                     next.submitted[op.id] = op.at;
                 }
@@ -660,6 +752,22 @@
             return pendingVote;
         }
 
+        function myUpvote(index = viewIndex) {
+            if (pendingUpvotes[index] !== undefined) {
+                const serverOn = Boolean(state.upvotes[index]?.[ME]);
+                if (serverOn === pendingUpvotes[index]) {
+                    delete pendingUpvotes[index];
+                    return serverOn;
+                }
+                return pendingUpvotes[index];
+            }
+            return Boolean(state.upvotes[index]?.[ME]);
+        }
+
+        function upvoteCount(index) {
+            return Object.keys(state.upvotes[index] || {}).filter((id) => id !== state.adminId).length;
+        }
+
         function render() {
             const lines = statements();
             const index = Math.max(0, Math.min(lines.length - 1, viewIndex));
@@ -670,7 +778,8 @@
 
             const answering = !admin && phase === "open" && !submittedMine;
             const reviewing = answering && flowMode === "review";
-            const onStatement = answering && !reviewing;
+            const improving = answering && flowMode === "improve";
+            const onStatement = answering && (flowMode === "pass" || flowMode === "revisit");
 
             document.getElementById("statement-count").textContent = flowMode === "revisit"
                 ? "Revisiting statement " + (index + 1) + " of " + lines.length
@@ -695,7 +804,7 @@
                     : "Welcome!";
                 const hostName = state.adminId ? state.users[state.adminId]?.name : "";
                 document.getElementById("greeting-body").textContent = (hostName ? hostName + " invited you to this TEPDK retrospective. " : "Thanks for joining this TEPDK retrospective. ")
-                    + "Each statement has " + STATEMENT_SECONDS + " seconds. Your answers are anonymous: the host only sees combined totals.";
+                    + "Each statement has " + STATEMENT_SECONDS + " seconds. Live results show combined totals; the host export keeps the name you entered.";
             }
 
             const phaseLabel = document.getElementById("phase-label");
@@ -706,14 +815,15 @@
             } else if (phase === "open") {
                 phaseLabel.textContent = "Polling is open";
                 phaseHelp.textContent = admin
-                    ? "Participants answer on their own devices. You will see anonymous totals per statement when you finish polling."
+                    ? "Participants answer on their own devices. Finish polling to see totals, upvotes, improvements, and export."
                     : submittedMine ? "Your answers have been submitted. Waiting for the host to finish polling."
-                        : reviewing ? "Revisit any unanswered statements, then submit."
-                            : "Pick True or False before the timer runs out. Your answers are anonymous.";
+                        : improving ? "Share the improvements you want to see in 3 to 4 weeks, then submit."
+                            : reviewing ? "Revisit any unanswered statements, then continue to improvements."
+                                : "Pick True or False, upvote discussion points at the top, then move on before the timer runs out.";
             } else {
                 phaseLabel.textContent = "Polling is closed";
                 phaseHelp.textContent = admin
-                    ? "Anonymous totals per statement. Statements where more than half answered False are marked Discuss."
+                    ? "Totals, upvotes, and improvements are ready. Export CSV or XLSX for future reference. Statements over 50% False are marked Discuss."
                     : (submittedMine ? "Your answers have been submitted." : "The host has closed polling.");
             }
             document.getElementById("start-poll").classList.toggle("hidden", !(admin && phase === "setup"));
@@ -759,6 +869,18 @@
             }
 
             const vote = myVote();
+            const hasAnswer = vote?.value === "True" || vote?.value === "False";
+            const upvoted = myUpvote();
+            const upvoteBtn = document.getElementById("btn-upvote");
+            upvoteBtn.disabled = !onStatement || !hasAnswer;
+            upvoteBtn.classList.toggle("selected-upvote", upvoted);
+            upvoteBtn.setAttribute("aria-pressed", upvoted ? "true" : "false");
+            document.getElementById("upvote-label").textContent = upvoted
+                ? "Upvoted for discussion"
+                : "Want to discuss this in the meeting? Upvote it";
+            document.getElementById("upvote-hint").textContent = hasAnswer
+                ? "Upvote if you want this statement raised in the meeting after the survey."
+                : "Answer True or False first, then upvote if this should come up in the meeting.";
             document.getElementById("btn-true").disabled = !onStatement;
             document.getElementById("btn-false").disabled = !onStatement;
             document.getElementById("btn-true").classList.toggle("selected-true", vote?.value === "True");
@@ -768,20 +890,48 @@
             document.getElementById("vote-row").classList.toggle("hidden", !onStatement);
 
             renderReview(lines, reviewing);
+            renderImprove(improving);
             const submitRow = document.getElementById("submit-row");
             const submitButton = document.getElementById("submit-answers");
             const submitStatus = document.getElementById("submit-status");
-            submitRow.classList.toggle("hidden", !reviewing);
-            submitRow.classList.toggle("flex", reviewing);
+            const showSubmit = reviewing || improving;
+            submitRow.classList.toggle("hidden", !showSubmit);
+            submitRow.classList.toggle("flex", showSubmit);
             const missing = lines.length - answered;
-            submitButton.disabled = !reviewing || !historyReady || submitting;
-            submitButton.textContent = submitting ? "Submitting..." : missing ? "Submit with " + missing + " unanswered" : "Submit answers";
-            submitStatus.textContent = missing ? "Unanswered statements are recorded as no vote." : "All statements answered.";
+            if (improving) {
+                submitButton.disabled = !historyReady || submitting;
+                submitButton.textContent = submitting ? "Submitting..." : "Submit answers";
+                submitStatus.textContent = "Your name and notes are included in the host export.";
+            } else {
+                submitButton.disabled = !reviewing || !historyReady || submitting;
+                submitButton.textContent = missing ? "Continue with " + missing + " unanswered" : "Continue to improvements";
+                submitStatus.textContent = missing ? "Unanswered statements are recorded as no vote." : "Next: share the improvements you want in 3–4 weeks.";
+            }
 
             syncTimer(onStatement ? flowMode + ":" + index + ":" + flowStep : "");
             saveFlow();
             renderPeople(lines, admin);
             renderResults(lines, admin && phase === "closed");
+        }
+
+        function renderImprove(visible) {
+            const panel = document.getElementById("improve-panel");
+            panel.classList.toggle("hidden", !visible);
+            panel.classList.toggle("flex", visible);
+            if (!visible) return;
+            const input = document.getElementById("improve-input");
+            if (input.value !== improveDraft) input.value = improveDraft;
+        }
+
+        function goToImprove() {
+            if (isAdmin() || state.phase !== "open" || state.submitted[ME] || !historyReady || submitting) return;
+            const lines = statements();
+            const missing = lines.length - answeredCount(lines);
+            if (missing && !confirm("You have " + missing + " unanswered statement" + (missing === 1 ? "" : "s") + ". They will be recorded as no vote. Continue anyway?")) return;
+            flowMode = "improve";
+            flowStep += 1;
+            render();
+            document.getElementById("improve-input").focus();
         }
 
         function renderReview(lines, visible) {
@@ -898,10 +1048,11 @@
         function loadFlow() {
             try {
                 const saved = JSON.parse(sessionStorage.getItem(flowStorageKey()) || "null");
-                if (!saved || !["pass", "review", "revisit"].includes(saved.mode)) return;
+                if (!saved || !["pass", "review", "revisit", "improve"].includes(saved.mode)) return;
                 flowMode = saved.mode;
                 viewIndex = Number.isInteger(saved.index) ? saved.index : 0;
                 revisitQueue = Array.isArray(saved.queue) ? saved.queue.filter(Number.isInteger) : [];
+                improveDraft = typeof saved.improve === "string" ? saved.improve.slice(0, 2000) : "";
                 if (flowMode === "revisit") {
                     if (revisitQueue.length) viewIndex = revisitQueue[0];
                     else flowMode = "review";
@@ -913,7 +1064,12 @@
 
         function saveFlow() {
             if (!room || isAdmin()) return;
-            sessionStorage.setItem(flowStorageKey(), JSON.stringify({ mode: flowMode, index: viewIndex, queue: revisitQueue }));
+            sessionStorage.setItem(flowStorageKey(), JSON.stringify({
+                mode: flowMode,
+                index: viewIndex,
+                queue: revisitQueue,
+                improve: improveDraft
+            }));
         }
 
         function renderPeople(lines, admin) {
@@ -973,6 +1129,37 @@
         function rememberSectionState() {
             const questions = document.getElementById("questions-section");
             if (questions) questionsOpen = questions.open;
+            const improvements = document.getElementById("improvements-section");
+            if (improvements) improvementsOpen = improvements.open;
+        }
+
+        function statementStats(lines) {
+            return lines.map((line, index) => {
+                const values = Object.entries(state.votes[index] || {})
+                    .filter(([id]) => id !== state.adminId)
+                    .map(([, item]) => item.value);
+                const trues = values.filter((value) => value === "True").length;
+                const falses = values.filter((value) => value === "False").length;
+                const total = trues + falses;
+                const upvotes = upvoteCount(index);
+                return {
+                    index,
+                    line,
+                    total,
+                    trues,
+                    falses,
+                    truePct: total ? (trues / total) * 100 : 0,
+                    falsePct: total ? (falses / total) * 100 : 0,
+                    upvotes,
+                    discuss: total > 0 && falses / total > 0.5
+                };
+            });
+        }
+
+        function participantRows() {
+            return Object.entries(state.users)
+                .filter(([id]) => id !== state.adminId)
+                .sort((a, b) => a[1].at - b[1].at);
         }
 
         function renderResults(lines, visible) {
@@ -981,30 +1168,16 @@
             panel.classList.toggle("hidden", !visible);
             if (visible) panel.parentElement.insertBefore(panel, document.getElementById("phase-banner").nextSibling);
             document.getElementById("questions-section").open = questionsOpen;
+            document.getElementById("improvements-section").open = improvementsOpen;
             if (!visible) return;
 
-            const participants = Object.entries(state.users).filter(([id]) => id !== state.adminId);
+            const participants = participantRows();
             const completed = participants.filter(([id]) => state.submitted[id]);
             document.getElementById("completion-summary").textContent = participants.length
                 ? completed.length + " of " + participants.length + " participants submitted"
                 : "No participants have joined yet.";
 
-            const stats = lines.map((line, index) => {
-                const values = Object.entries(state.votes[index] || {})
-                    .filter(([id]) => id !== state.adminId)
-                    .map(([, item]) => item.value);
-                const trues = values.filter((value) => value === "True").length;
-                const falses = values.filter((value) => value === "False").length;
-                const total = trues + falses;
-                return {
-                    index,
-                    line,
-                    total,
-                    truePct: total ? (trues / total) * 100 : 0,
-                    falsePct: total ? (falses / total) * 100 : 0,
-                    discuss: total > 0 && falses / total > 0.5
-                };
-            });
+            const stats = statementStats(lines);
             const discussCount = stats.filter((item) => item.discuss).length;
             const discussSummary = document.getElementById("discuss-summary");
             discussSummary.textContent = discussCount
@@ -1013,10 +1186,13 @@
             discussSummary.className = "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border "
                 + (discussCount ? "bg-red-500/15 border-red-500/40 text-red-300" : "bg-slate-800 border-slate-700 text-slate-400");
 
-            const sortKey = questionSort.startsWith("false") ? "falsePct" : "truePct";
             const direction = questionSort.endsWith("desc") ? -1 : 1;
             const sorted = stats.slice().sort((a, b) => {
                 if (questionSort === "order") return a.index - b.index;
+                if (questionSort.startsWith("upvote")) {
+                    return (a.upvotes - b.upvotes) * direction || a.index - b.index;
+                }
+                const sortKey = questionSort.startsWith("false") ? "falsePct" : "truePct";
                 if (!a.total !== !b.total) return a.total ? -1 : 1;
                 return (a[sortKey] - b[sortKey]) * direction || a.index - b.index;
             });
@@ -1035,12 +1211,21 @@
                 title.className = "text-sm text-slate-200";
                 title.textContent = (item.index + 1) + ". " + item.line;
                 top.appendChild(title);
+                const badges = document.createElement("div");
+                badges.className = "shrink-0 flex flex-col items-end gap-1";
+                if (item.upvotes) {
+                    const up = document.createElement("span");
+                    up.className = "inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs font-semibold px-2 py-0.5";
+                    up.textContent = item.upvotes + (item.upvotes === 1 ? " upvote" : " upvotes");
+                    badges.appendChild(up);
+                }
                 if (item.discuss) {
                     const badge = document.createElement("span");
-                    badge.className = "discuss-badge shrink-0 inline-flex items-center gap-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-semibold px-2 py-0.5";
+                    badge.className = "discuss-badge inline-flex items-center gap-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-semibold px-2 py-0.5";
                     badge.textContent = "Discuss";
-                    top.appendChild(badge);
+                    badges.appendChild(badge);
                 }
+                if (badges.childNodes.length) top.appendChild(badges);
 
                 const bar = document.createElement("div");
                 bar.className = "mt-3 h-3 rounded-full bg-slate-800 overflow-hidden flex";
@@ -1076,6 +1261,32 @@
                 row.append(top, bar, footer);
                 questions.appendChild(row);
             }
+
+            const notes = completed
+                .map(([id, person]) => ({ name: person.name, text: state.improvements[id]?.text || "" }))
+                .filter((item) => item.text);
+            document.getElementById("improvements-count").textContent = String(notes.length);
+            const list = document.getElementById("improvements-list");
+            list.replaceChildren();
+            if (!notes.length) {
+                const empty = document.createElement("p");
+                empty.className = "text-sm text-slate-400";
+                empty.textContent = "No improvement notes submitted yet.";
+                list.appendChild(empty);
+                return;
+            }
+            for (const note of notes) {
+                const card = document.createElement("div");
+                card.className = "border border-slate-700 rounded-xl px-4 py-3 bg-slate-900/70";
+                const name = document.createElement("p");
+                name.className = "text-sm font-semibold text-indigo-200";
+                name.textContent = note.name;
+                const text = document.createElement("p");
+                text.className = "mt-2 text-sm text-slate-200 whitespace-pre-wrap";
+                text.textContent = note.text;
+                card.append(name, text);
+                list.appendChild(card);
+            }
         }
 
         function initials(name) {
@@ -1085,11 +1296,20 @@
 
         async function submitAnswers() {
             if (isAdmin() || state.phase !== "open" || state.submitted[ME] || !historyReady || submitting) return;
-            const lines = statements();
-            const missing = lines.length - answeredCount(lines);
-            if (missing && !confirm("You have " + missing + " unanswered statement" + (missing === 1 ? "" : "s") + ". They will be recorded as no vote. Submit anyway?")) return;
+            if (flowMode !== "improve") {
+                goToImprove();
+                return;
+            }
+            const text = improveDraft.trim();
+            if (!text) {
+                document.getElementById("improve-error").classList.remove("hidden");
+                document.getElementById("improve-input").focus();
+                return;
+            }
+            document.getElementById("improve-error").classList.add("hidden");
             submitting = true;
             render();
+            await send({ t: "improve", id: ME, text: text.slice(0, 2000) });
             await send({ t: "submit", id: ME });
             submitting = false;
             showToast("Answers submitted");
@@ -1101,8 +1321,130 @@
             const current = myVote();
             const nextValue = current?.value === value ? null : value;
             pendingVotes[viewIndex] = { value: nextValue };
+            if (!nextValue && myUpvote()) {
+                pendingUpvotes[viewIndex] = false;
+                send({ t: "upvote", id: ME, i: viewIndex, value: false });
+            }
             render();
             send({ t: "vote", id: ME, i: viewIndex, value: nextValue });
+        }
+
+        function castUpvote() {
+            if (state.phase !== "open" || state.submitted[ME]) return;
+            const vote = myVote();
+            if (vote?.value !== "True" && vote?.value !== "False") return;
+            const next = !myUpvote();
+            pendingUpvotes[viewIndex] = next;
+            render();
+            send({ t: "upvote", id: ME, i: viewIndex, value: next });
+        }
+
+        function csvEscape(value) {
+            const text = String(value ?? "");
+            if (/[",\n\r]/.test(text)) return '"' + text.replaceAll('"', '""') + '"';
+            return text;
+        }
+
+        function downloadBlob(filename, blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function exportPrefix() {
+            return "tepdk-retro-" + roomCode().toLowerCase();
+        }
+
+        function buildSummaryRows(lines) {
+            const stats = statementStats(lines);
+            return [
+                ["Statement #", "Statement", "True count", "False count", "True %", "False %", "Upvotes", "Discuss"],
+                ...stats.map((item) => [
+                    item.index + 1,
+                    item.line,
+                    item.trues,
+                    item.falses,
+                    item.total ? Math.round(item.truePct) : "",
+                    item.total ? Math.round(item.falsePct) : "",
+                    item.upvotes,
+                    item.discuss ? "Yes" : "No"
+                ])
+            ];
+        }
+
+        function buildAnswerRows(lines) {
+            const rows = [["Name", "Statement #", "Statement", "Answer", "Upvoted"]];
+            for (const [id, person] of participantRows()) {
+                for (let index = 0; index < lines.length; index += 1) {
+                    const answer = state.votes[index]?.[id]?.value || "";
+                    const upvoted = Boolean(state.upvotes[index]?.[id]);
+                    rows.push([person.name, index + 1, lines[index], answer, upvoted ? "Yes" : "No"]);
+                }
+            }
+            return rows;
+        }
+
+        function buildImprovementRows() {
+            const rows = [["Name", "Improvement notes"]];
+            for (const [id, person] of participantRows()) {
+                const text = state.improvements[id]?.text;
+                if (text) rows.push([person.name, text]);
+            }
+            return rows;
+        }
+
+        function rowsToCsv(rows) {
+            return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+        }
+
+        function exportCsv(kind) {
+            if (!isAdmin() || state.phase !== "closed") return;
+            const lines = statements();
+            const map = {
+                summary: { rows: buildSummaryRows(lines), name: exportPrefix() + "-summary.csv" },
+                answers: { rows: buildAnswerRows(lines), name: exportPrefix() + "-answers.csv" },
+                improvements: { rows: buildImprovementRows(), name: exportPrefix() + "-improvements.csv" }
+            };
+            const item = map[kind];
+            if (!item) return;
+            downloadBlob(item.name, new Blob([rowsToCsv(item.rows)], { type: "text/csv;charset=utf-8" }));
+            showToast("Downloaded " + item.name);
+        }
+
+        function loadSheetJs() {
+            if (window.XLSX) return Promise.resolve(window.XLSX);
+            if (sheetJsPromise) return sheetJsPromise;
+            sheetJsPromise = new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+                script.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error("SheetJS missing"));
+                script.onerror = () => reject(new Error("SheetJS failed to load"));
+                document.head.appendChild(script);
+            });
+            return sheetJsPromise;
+        }
+
+        async function exportXlsx() {
+            if (!isAdmin() || state.phase !== "closed") return;
+            try {
+                const XLSX = await loadSheetJs();
+                const lines = statements();
+                const book = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(buildSummaryRows(lines)), "Summary");
+                XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(buildAnswerRows(lines)), "Answers");
+                XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(buildImprovementRows()), "Improvements");
+                const filename = exportPrefix() + "-results.xlsx";
+                XLSX.writeFile(book, filename);
+                showToast("Downloaded " + filename);
+            } catch (error) {
+                console.error(error);
+                showToast("Could not build the XLSX file. Use CSV instead.");
+            }
         }
 
         function roomCode() {
