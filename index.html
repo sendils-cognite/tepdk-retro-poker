@@ -253,14 +253,7 @@
                         <i class="ph ph-chat-centered-text"></i>
                         <span id="statement-count">Statement 1 of 10</span>
                     </div>
-                    <div id="upvote-row" class="mt-3 mb-3">
-                        <button id="btn-upvote" type="button" disabled class="upvote-btn w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-600 bg-slate-900/70 px-4 py-2.5 text-sm font-semibold text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed" aria-pressed="false">
-                            <i class="ph-fill ph-arrow-fat-up text-lg" aria-hidden="true"></i>
-                            <span id="upvote-label">Want to discuss this in the meeting? Upvote it</span>
-                        </button>
-                        <p id="upvote-hint" class="mt-1.5 text-xs text-slate-400">Answer True or False first, then upvote if this should come up in the meeting.</p>
-                    </div>
-                    <p id="statement-text" class="text-white text-lg sm:text-xl md:text-2xl font-medium leading-snug"></p>
+                    <p id="statement-text" class="text-white text-lg sm:text-xl md:text-2xl font-medium mt-3 leading-snug"></p>
                     <div id="answer-progress" class="hidden mt-4">
                         <div class="flex items-center justify-between text-xs font-bold text-slate-300 mb-1.5">
                             <span>Answered</span>
@@ -295,6 +288,14 @@
                         <i class="vote-icon ph-fill ph-x-circle text-2xl" aria-hidden="true"></i>
                         <span class="text-xl font-bold tracking-wide">FALSE</span>
                     </button>
+                </div>
+
+                <div id="upvote-row" class="hidden flex-col items-end gap-1.5">
+                    <button id="btn-upvote" type="button" disabled class="upvote-btn inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-600 bg-slate-900/70 px-4 py-2.5 text-sm font-semibold text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed" aria-pressed="false">
+                        <i class="ph-fill ph-arrow-fat-up text-lg" aria-hidden="true"></i>
+                        <span id="upvote-label">Want to discuss this in the meeting? Upvote it</span>
+                    </button>
+                    <p id="upvote-hint" class="text-xs text-slate-400 text-right max-w-sm">Answer True or False first, then upvote if this should come up in the meeting.</p>
                 </div>
 
                 <div id="nav-row" class="flex items-center justify-between gap-3">
@@ -819,7 +820,7 @@
                     : submittedMine ? "Your answers have been submitted. Waiting for the host to finish polling."
                         : improving ? "Share the improvements you want to see in 3 to 4 weeks, then submit."
                             : reviewing ? "Revisit any unanswered statements, then continue to improvements."
-                                : "Pick True or False, upvote discussion points at the top, then move on before the timer runs out.";
+                                : "Pick True or False, then upvote below if you want this discussed in the meeting.";
             } else {
                 phaseLabel.textContent = "Polling is closed";
                 phaseHelp.textContent = admin
@@ -888,6 +889,9 @@
             document.getElementById("btn-true").setAttribute("aria-pressed", vote?.value === "True" ? "true" : "false");
             document.getElementById("btn-false").setAttribute("aria-pressed", vote?.value === "False" ? "true" : "false");
             document.getElementById("vote-row").classList.toggle("hidden", !onStatement);
+            const upvoteRow = document.getElementById("upvote-row");
+            upvoteRow.classList.toggle("hidden", !onStatement);
+            upvoteRow.classList.toggle("flex", onStatement);
 
             renderReview(lines, reviewing);
             renderImprove(improving);

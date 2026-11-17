@@ -24,7 +24,7 @@ GitHub Pages serves the static app (HTML + Tailwind CDN + admin-config.js)
 
 1. **Host** signs in with the admin user ID and password, creates a room, and shares the invite URL / QR.
 2. **Participants** open the invite, enter a name, and wait until the host starts the poll.
-3. Each statement has a countdown (default **45 seconds**). Choosing True or False fills the whole button. An **upvote** control sits at the top of the statement card so participants can flag discussion points after answering.
+3. Each statement has a countdown (default **45 seconds**). Choosing True or False fills the whole button. An **upvote** control sits below the True / False buttons (right-aligned) so participants can flag discussion points after answering.
 4. After the timed pass and review, participants write improvement notes for the next 3–4 weeks, then submit and see a thank-you screen.
 5. When the host finishes the poll, results show True / False percentages, upvote counts, improvement notes by name, sorting (including most / least upvoted), and CSV / XLSX export. Statements where False is over 50% still get a **Discuss** badge.
 
@@ -98,7 +98,7 @@ Open [http://127.0.0.1:8765/](http://127.0.0.1:8765/). Sync still uses the publi
 
 1. Open the invite link and enter a display name (any text; not validated).
 2. When the poll opens, answer each statement True or False within the timer.
-3. After answering, use the upvote control at the top if you want that statement discussed in the meeting.
+3. After answering, use the upvote control under True / False (right side) if you want that statement discussed in the meeting.
 4. Review unanswered items, optionally revisit them, continue to improvement notes, then submit.
 5. See the thank-you page.
 
