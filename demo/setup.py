@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import sys
 import time
@@ -13,6 +14,8 @@ import uuid
 
 NAMES: list[str] = ["Amina", "Lars", "Priya", "Chen", "Sofia"]
 STATEMENT_COUNT = 10
+ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+ROOM_ID_LENGTH = 6
 IMPROVEMENTS: list[str] = [
     "- Clearer ownership on blocked work\n- Weekly demo of pipeline status",
     "- Faster answers from Cognite SMEs\n- Written definition of done",
@@ -22,9 +25,13 @@ IMPROVEMENTS: list[str] = [
 ]
 
 
+def make_room_id(length: int = ROOM_ID_LENGTH) -> str:
+    return "".join(ROOM_ALPHABET[byte % len(ROOM_ALPHABET)] for byte in os.urandom(length))
+
+
 def main() -> None:
     base = (sys.argv[1] if len(sys.argv) > 1 else "https://sendils-cognite.github.io/tepdk-retro-poker").rstrip("/")
-    room = "rp" + uuid.uuid4().hex
+    room = make_room_id()
     host_id = str(uuid.uuid4())
     clock = time.time()
 

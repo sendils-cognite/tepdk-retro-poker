@@ -22,8 +22,8 @@ Host browser  ──POST ops──►  ntfy.sh/{room}  ◄──SSE──  Parti
 GitHub Pages serves the static app (HTML + Tailwind CDN + admin-config.js)
 ```
 
-1. **Host** signs in with the admin user ID and password, creates a room, and shares the invite URL / QR.
-2. **Participants** open the invite, enter a name, and wait until the host starts the poll.
+1. **Host** signs in with the admin user ID and password, creates a room with a **6-character room code**, and shares the invite URL / QR.
+2. **Participants** open the short invite (for example `?room=K7M2QX`), enter a name, and wait until the host starts the poll.
 3. Each statement has a countdown (default **45 seconds**). Choosing True or False fills the whole button. An **upvote** control sits below the True / False buttons (right-aligned) so participants can flag discussion points after answering.
 4. After the timed pass and review, participants write improvement notes for the next 3–4 weeks, then submit and see a thank-you screen.
 5. When the host finishes the poll, results show True / False percentages, upvote counts, improvement notes by name, sorting by most upvoted / False / True, and CSV / XLSX export. Statements where False is over 50% still get a **Discuss** badge.
@@ -164,7 +164,7 @@ The script prints a **host dashboard** URL (`?room=…&host=…`) and an **invit
 
 | Parameter | Effect |
 | --- | --- |
-| `room` | Join an existing room |
+| `room` | Join an existing room (new rooms use a 6-character code; older `rp…` links still work) |
 | `host` | Demo-only: open as that room’s host without the login form |
 | `t` | Seconds per statement (default `45`; use `t=3` for a quick manual test) |
 | `v` | Cache-busting query for Pages (any unique value, often the commit SHA) |

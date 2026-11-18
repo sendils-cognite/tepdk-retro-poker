@@ -412,8 +412,27 @@
             }
         ];
 
+        const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const ROOM_ID_LENGTH = 6;
+
+        function normalizeRoom(value) {
+            if (!value) return null;
+            const trimmed = String(value).trim();
+            if (!trimmed) return null;
+            // Keep legacy long ids as lowercase; short codes are uppercase.
+            if (/^rp[a-f0-9]{32}$/i.test(trimmed)) return trimmed.toLowerCase();
+            const short = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, "");
+            return short || null;
+        }
+
+        function makeRoomId(length = ROOM_ID_LENGTH) {
+            const bytes = new Uint8Array(length);
+            crypto.getRandomValues(bytes);
+            return Array.from(bytes, (byte) => ROOM_ALPHABET[byte % ROOM_ALPHABET.length]).join("");
+        }
+
         const params = new URLSearchParams(location.search);
-        let room = params.get("room");
+        let room = normalizeRoom(params.get("room"));
         const demoHost = params.get("host");
         const ME = (room && demoHost) ? demoHost : (sessionStorage.getItem("retro-me") || crypto.randomUUID());
         sessionStorage.setItem("retro-me", ME);
@@ -577,7 +596,7 @@
             myName = name;
             sessionStorage.setItem("retro-name", name);
             if (creating) {
-                room = "rp" + crypto.randomUUID().replaceAll("-", "");
+                room = makeRoomId();
                 createdByMe = true;
                 const url = new URL(location.href);
                 url.searchParams.set("room", room);
@@ -1447,7 +1466,9 @@
         }
 
         function roomCode() {
-            return room ? room.slice(-6).toUpperCase() : "";
+            if (!room) return "";
+            // Short room ids are already the share code; legacy rp… ids keep the last 6.
+            return /^rp[a-f0-9]{32}$/i.test(room) ? room.slice(-6).toUpperCase() : room.toUpperCase();
         }
 
         function showShareScreen() {
@@ -1484,7 +1505,7 @@
         }
 
         function inviteUrl() {
-            return location.origin + location.pathname + "?room=" + room;
+            return location.origin + location.pathname + "?room=" + encodeURIComponent(room);
         }
 
         function renderQr(container, url) {
