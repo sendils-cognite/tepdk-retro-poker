@@ -360,13 +360,9 @@
                             <label class="flex items-center gap-2 text-sm text-slate-300">
                                 <span class="shrink-0">Sort by</span>
                                 <select id="question-sort" class="flex-grow sm:flex-grow-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    <option value="order">Statement order</option>
-                                    <option value="false-desc">Most False first</option>
-                                    <option value="false-asc">Least False first</option>
-                                    <option value="true-desc">Most True first</option>
-                                    <option value="true-asc">Least True first</option>
-                                    <option value="upvote-desc">Most upvoted first</option>
-                                    <option value="upvote-asc">Least upvoted first</option>
+                                    <option value="upvote-desc">Most upvoted</option>
+                                    <option value="false-desc">False</option>
+                                    <option value="true-desc">True</option>
                                 </select>
                             </label>
                         </div>
@@ -440,7 +436,7 @@
         let thanksShown = false;
         let questionsOpen = true;
         let improvementsOpen = true;
-        let questionSort = "order";
+        let questionSort = "upvote-desc";
         let improveDraft = "";
         let source = null;
         let seen = new Set();
@@ -1189,16 +1185,16 @@
             discussSummary.className = "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border "
                 + (discussCount ? "bg-red-500/15 border-red-500/40 text-red-300" : "bg-slate-800 border-slate-700 text-slate-400");
 
-            const direction = questionSort.endsWith("desc") ? -1 : 1;
             const sorted = stats.slice().sort((a, b) => {
-                if (questionSort === "order") return a.index - b.index;
-                if (questionSort.startsWith("upvote")) {
-                    return (a.upvotes - b.upvotes) * direction || a.index - b.index;
+                if (questionSort === "upvote-desc") {
+                    return (b.upvotes - a.upvotes) || a.index - b.index;
                 }
-                const sortKey = questionSort.startsWith("false") ? "falsePct" : "truePct";
+                const sortKey = questionSort === "false-desc" ? "falsePct" : "truePct";
                 if (!a.total !== !b.total) return a.total ? -1 : 1;
-                return (a[sortKey] - b[sortKey]) * direction || a.index - b.index;
+                return (b[sortKey] - a[sortKey]) || a.index - b.index;
             });
+            const allowedSorts = ["upvote-desc", "false-desc", "true-desc"];
+            if (!allowedSorts.includes(questionSort)) questionSort = "upvote-desc";
             document.getElementById("question-sort").value = questionSort;
 
             const questions = document.getElementById("question-results");

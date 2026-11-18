@@ -26,7 +26,7 @@ GitHub Pages serves the static app (HTML + Tailwind CDN + admin-config.js)
 2. **Participants** open the invite, enter a name, and wait until the host starts the poll.
 3. Each statement has a countdown (default **45 seconds**). Choosing True or False fills the whole button. An **upvote** control sits below the True / False buttons (right-aligned) so participants can flag discussion points after answering.
 4. After the timed pass and review, participants write improvement notes for the next 3–4 weeks, then submit and see a thank-you screen.
-5. When the host finishes the poll, results show True / False percentages, upvote counts, improvement notes by name, sorting (including most / least upvoted), and CSV / XLSX export. Statements where False is over 50% still get a **Discuss** badge.
+5. When the host finishes the poll, results show True / False percentages, upvote counts, improvement notes by name, sorting by most upvoted / False / True, and CSV / XLSX export. Statements where False is over 50% still get a **Discuss** badge.
 
 Room state is rebuilt on every client from a shared op log on [ntfy.sh](https://ntfy.sh). There is no app server and no database.
 
@@ -92,7 +92,7 @@ Open [http://127.0.0.1:8765/](http://127.0.0.1:8765/). Sync still uses the publi
 2. Create a room and share the invite link or QR.
 3. Watch the people board for join / answering / submitted status.
 4. Start the poll, then Finish when ready.
-5. Review aggregate percentages, upvote counts, Discuss badges, improvement notes, sort controls (including most / least upvoted), and export CSV or XLSX.
+5. Review aggregate percentages, upvote counts, Discuss badges, improvement notes, sort by Most upvoted / False / True, and export CSV or XLSX.
 
 ### Participant
 
