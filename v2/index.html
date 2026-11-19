@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="robots" content="noindex">
+    <title>Retro Poker | TEPDK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="admin-config.js"></script>
+    <script src="sync-config.js"></script>
+    <style>
+        body {
+            font-family: 'Atkinson Hyperlegible', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+        }
+        button, summary, select, label[for] { cursor: pointer; }
+        button, select { min-height: 44px; }
+        :focus { outline: none; }
+        :focus-visible {
+            outline: 2px solid #a5b4fc;
+            outline-offset: 3px;
+        }
+        .text-slate-500 { color: #94a3b8; }
+        .vote-btn {
+            min-height: 56px;
+            border: 2px solid #475569;
+            background-color: rgba(30, 41, 59, 0.7);
+            color: #f8fafc;
+            transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+        }
+        .vote-btn .vote-icon { transition: color 0.15s ease; }
+        #btn-true .vote-icon { color: #4ade80; }
+        #btn-false .vote-icon { color: #f87171; }
+        .vote-btn:not(:disabled):hover { background-color: #334155; }
+        #btn-true:not(:disabled):hover { border-color: #4ade80; }
+        #btn-false:not(:disabled):hover { border-color: #f87171; }
+        .vote-btn:not(:disabled):active { transform: scale(0.98); }
+        .vote-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        #vote-row .vote-btn.selected-true { background-color: #16a34a; border-color: #86efac; }
+        #vote-row .vote-btn.selected-false { background-color: #dc2626; border-color: #fca5a5; }
+        #vote-row .vote-btn.selected-true .vote-icon,
+        #vote-row .vote-btn.selected-false .vote-icon { color: #ffffff; }
+        .upvote-btn.selected-upvote {
+            background-color: rgba(245, 158, 11, 0.2);
+            border-color: #fbbf24;
+            color: #fde68a;
+        }
+        .upvote-btn:not(:disabled):hover { border-color: #fbbf24; }
+        .timer-box { transition: background-color 0.3s ease, border-color 0.3s ease; }
+        .timer-ring-track { stroke: rgba(148, 163, 184, 0.2); }
+        .timer-calm { background-color: rgba(8, 145, 178, 0.12); border-color: rgba(34, 211, 238, 0.45); }
+        .timer-calm .timer-ring { stroke: #22d3ee; }
+        .timer-calm .timer-tone { color: #a5f3fc; }
+        .timer-warn { background-color: rgba(245, 158, 11, 0.14); border-color: rgba(251, 191, 36, 0.6); }
+        .timer-warn .timer-ring { stroke: #fbbf24; }
+        .timer-warn .timer-tone { color: #fde68a; }
+        .timer-urgent { background-color: rgba(225, 29, 72, 0.2); border-color: #fb7185; }
+        .timer-urgent .timer-ring { stroke: #fb7185; }
+        .timer-urgent .timer-tone { color: #fecdd3; }
+        .timer-urgent.timer-pulse { animation: timer-pulse 1s ease-in-out infinite; }
+        @keyframes timer-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.55); }
+            50% { box-shadow: 0 0 0 6px rgba(251, 113, 133, 0); }
+        }
+        .bar-false {
+            background-color: #ef4444;
+            background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.28) 0 3px, transparent 3px 7px);
+        }
+        .picked-user {
+            animation: pulse-ring 2s infinite;
+            border-color: #fbbf24 !important;
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.5);
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
+                scroll-behavior: auto !important;
+            }
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        details.results-section > summary { list-style: none; cursor: pointer; }
+        details.results-section > summary::-webkit-details-marker { display: none; }
+        details.results-section > summary .chevron { transition: transform 0.15s ease; }
+        details.results-section[open] > summary .chevron { transform: rotate(90deg); }
+        .qr-box svg { width: 100%; height: 100%; display: block; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px]">
+        <div class="bg-indigo-600 text-white px-6 py-3 rounded-full shadow-lg font-medium text-sm flex items-center gap-2">
+            <i class="ph ph-check-circle text-lg"></i>
+            <span id="toast-message">Notification</span>
+        </div>
+    </div>
+
+    <div id="qr-overlay" class="hidden fixed inset-0 z-50 bg-slate-950/95 items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="qr-overlay-title">
+        <div id="qr-overlay-panel" class="w-full max-w-2xl text-center">
+            <h2 id="qr-overlay-title" class="text-2xl sm:text-4xl font-bold text-white">Scan to join the TEPDK retrospective</h2>
+            <p class="mt-3 text-sm sm:text-base uppercase tracking-widest text-slate-400">Room code</p>
+            <p id="qr-overlay-code" class="text-3xl sm:text-5xl font-bold text-indigo-300 tracking-[0.3em]"></p>
+            <div id="qr-overlay-qr" class="qr-box mx-auto mt-5 bg-white rounded-3xl p-4" style="width:min(85vmin, 520px);height:min(85vmin, 520px)"></div>
+            <p id="qr-overlay-url" class="mt-4 text-xs sm:text-sm text-slate-400 break-all"></p>
+            <button id="qr-overlay-close" type="button" class="mt-5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2.5 px-6 rounded-xl border border-slate-700 inline-flex items-center gap-2">
+                <i class="ph ph-x"></i> Close
+            </button>
+        </div>
+    </div>
+
+    <div id="app-container" class="flex-grow flex flex-col relative">
+        <div id="login-screen" class="absolute inset-0 z-40 flex items-center justify-center p-4 bg-[#0f172a] min-h-screen">
+            <div class="glass-panel p-6 sm:p-8 rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                <div class="text-center mb-6 sm:mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-500/20 text-indigo-400 mb-4">
+                        <i class="ph ph-cards text-3xl"></i>
+                    </div>
+                    <h1 class="text-3xl font-bold text-white tracking-tight">Retro Poker</h1>
+                    <p id="login-greeting" class="hidden text-indigo-300 font-semibold mt-3 text-base"></p>
+                    <p id="login-blurb" class="text-slate-400 mt-2 text-sm">Admin sign in. Create the TEPDK retrospective room, then share the QR code or invite link. Only you will see the results, as anonymous totals per statement.</p>
+                </div>
+                <form id="login-form" class="space-y-5" novalidate>
+                    <div id="name-field" class="hidden">
+                        <label class="block text-sm font-medium text-slate-300 mb-1.5" for="nickname-input">Your name</label>
+                        <input type="text" id="nickname-input" autocomplete="name" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="e.g. Shibin" maxlength="40">
+                    </div>
+                    <div id="admin-fields" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1.5" for="admin-user">User ID</label>
+                            <input type="text" id="admin-user" autocomplete="username" autocapitalize="off" spellcheck="false" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" maxlength="80">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1.5" for="admin-pass">Password</label>
+                            <input type="password" id="admin-pass" autocomplete="current-password" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" maxlength="200">
+                        </div>
+                        <p id="login-error" class="hidden text-sm text-rose-400" role="alert"></p>
+                    </div>
+                    <button id="join-btn" type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2">
+                        <span id="join-btn-text">Sign in and create session</span>
+                        <i class="ph ph-arrow-right font-bold"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="share-screen" class="hidden absolute inset-0 z-30 items-center justify-center p-4 bg-[#0f172a] min-h-screen">
+            <div class="glass-panel p-6 sm:p-8 rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden text-center">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Scan to join the TEPDK retrospective</h1>
+                <p class="text-slate-400 mt-2 text-sm">Participants scan this code with their phone camera, enter their name and answer the survey.</p>
+                <p class="mt-4 text-xs uppercase tracking-widest text-slate-500">Room code</p>
+                <p id="share-room-code" class="text-2xl font-bold text-indigo-300 tracking-[0.3em]"></p>
+                <div id="share-qr" class="qr-box mx-auto mt-4 bg-white rounded-2xl p-3" style="width:min(80vw, 360px);height:min(80vw, 360px)"></div>
+                <div class="mt-5 flex flex-col sm:flex-row gap-2 text-left">
+                    <input id="share-url" readonly class="flex-grow min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200" aria-label="Invite link">
+                    <button id="share-copy" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2.5 rounded-xl border border-slate-700 flex items-center justify-center gap-2">
+                        <i class="ph ph-link"></i> Copy
+                    </button>
+                </div>
+                <button id="go-dashboard" type="button" class="mt-5 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2">
+                    Go to host dashboard <i class="ph ph-arrow-right font-bold"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="thanks-screen" class="hidden absolute inset-0 z-30 items-center justify-center p-4 bg-[#0f172a] min-h-screen" role="status" aria-live="polite">
+            <div class="glass-panel p-6 sm:p-10 rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden text-center">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500"></div>
+                <div class="mx-auto flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-green-500/20 border border-green-500/40 text-green-400">
+                    <i class="ph-fill ph-check-circle text-5xl sm:text-6xl"></i>
+                </div>
+                <div class="mt-5">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/15 text-green-300 text-xs font-semibold uppercase tracking-widest">
+                        <i class="ph ph-seal-check"></i> Survey completed
+                    </span>
+                </div>
+                <h1 id="thanks-title" class="mt-4 text-3xl sm:text-4xl font-bold text-white tracking-tight">Thank you!</h1>
+                <p id="thanks-body" class="mt-3 text-base text-slate-300 leading-relaxed"></p>
+                <p id="thanks-detail" class="mt-4 text-sm text-slate-400"></p>
+                <p class="mt-1 text-sm text-slate-400">Live results use combined totals. The host export keeps the name you entered with your answers and notes.</p>
+                <p class="mt-6 text-xs text-slate-500">You can close this page now.</p>
+            </div>
+        </div>
+
+        <div id="poker-screen" class="hidden flex-col h-full w-full max-w-6xl mx-auto p-3 sm:p-4 md:p-6">
+            <header id="app-header" class="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3 mb-2 sm:mb-3 glass-panel p-3 sm:p-4 rounded-2xl">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/40 shrink-0">
+                        <i class="ph ph-cards text-xl text-white"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-lg font-bold text-white leading-tight">TEPDK Retro</h2>
+                        <p id="header-welcome" class="hidden text-sm text-indigo-200 truncate mt-0.5"></p>
+                        <div id="header-meta" class="flex items-center gap-2 text-xs font-medium text-slate-400 mt-0.5">
+                            <span id="session-meta" class="flex items-center gap-1"><i class="ph ph-hash"></i><span id="display-session-id">...</span></span>
+                            <span id="role-badge" class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">Participant</span>
+                            <span id="live-status" class="text-amber-400">Connecting</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="host-actions" class="hidden gap-2 w-full md:w-auto">
+                    <button id="show-qr" type="button" class="hidden flex-1 md:flex-none items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                        <i class="ph ph-qr-code text-lg"></i>
+                        Show QR
+                    </button>
+                    <button id="copy-link" type="button" class="flex flex-1 md:flex-none items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border border-slate-700">
+                        <i class="ph ph-link text-lg"></i>
+                        <span class="sm:hidden">Copy link</span><span class="hidden sm:inline">Copy invite link</span>
+                    </button>
+                </div>
+            </header>
+
+            <div id="main-stack" class="flex-grow flex flex-col gap-2 sm:gap-3 min-h-0">
+                <div id="phase-banner" class="glass-panel rounded-2xl p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3">
+                    <div>
+                        <p id="phase-label" class="text-white font-semibold">Waiting to start</p>
+                        <p id="phase-help" class="text-sm text-slate-400 mt-1">Start polling when the room is ready.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                        <button id="start-poll" class="hidden w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 sm:py-2.5 px-5 rounded-xl">Start polling</button>
+                        <button id="finish-poll" class="hidden w-full sm:w-auto bg-rose-600 hover:bg-rose-500 text-white font-semibold py-3 sm:py-2.5 px-5 rounded-xl">Finish polling</button>
+                    </div>
+                </div>
+
+                <div id="statement-card" class="glass-panel rounded-2xl p-3 sm:p-4 relative border border-slate-700/50">
+                    <div class="flex items-center justify-between gap-2 mt-0.5 mb-2">
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-indigo-300 border border-slate-700">
+                            <i class="ph ph-chat-centered-text" aria-hidden="true"></i>
+                            <span id="statement-count">Statement 1 of 10</span>
+                        </span>
+                        <span id="answer-progress-label" class="text-xs font-semibold text-slate-400 tabular-nums">0 of 10</span>
+                    </div>
+                    <p id="statement-text" class="text-white text-base sm:text-lg md:text-xl font-medium leading-snug"></p>
+                    <div id="answer-progress" class="hidden mt-2">
+                        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden" role="progressbar" aria-valuemin="0" aria-labelledby="answer-progress-label" id="answer-progress-track">
+                            <div id="answer-progress-bar" class="h-full rounded-full bg-indigo-400" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div id="timer-wrap" class="hidden timer-box timer-calm mt-2 rounded-xl border px-2.5 py-2 flex items-center gap-2.5">
+                        <div class="relative w-11 h-11 shrink-0" role="timer" aria-labelledby="timer-title">
+                            <svg viewBox="0 0 56 56" class="w-11 h-11 -rotate-90" aria-hidden="true">
+                                <circle cx="28" cy="28" r="24" fill="none" stroke-width="6" class="timer-ring-track"></circle>
+                                <circle id="timer-ring" cx="28" cy="28" r="24" fill="none" stroke-width="6" stroke-linecap="round" class="timer-ring" stroke-dasharray="150.8" stroke-dashoffset="0"></circle>
+                            </svg>
+                            <span id="timer-label" class="timer-tone absolute inset-0 flex items-center justify-center text-lg font-bold tabular-nums">45</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="timer-tone text-sm font-bold flex items-center gap-1.5"><i id="timer-icon" class="ph-fill ph-timer" aria-hidden="true"></i> <span id="timer-title">45 seconds left</span></p>
+                            <p id="timer-hint" class="text-xs text-slate-300">Pick True or False before time runs out.</p>
+                        </div>
+                        <span id="timer-announce" class="sr-only" aria-live="polite"></span>
+                    </div>
+                </div>
+
+                <div id="vote-row" class="grid grid-cols-2 gap-2 sm:gap-3">
+                    <button id="btn-true" class="vote-btn rounded-xl px-3 py-2.5 flex items-center justify-center gap-2">
+                        <i class="vote-icon ph-fill ph-check-circle text-2xl" aria-hidden="true"></i>
+                        <span class="text-lg sm:text-xl font-bold tracking-wide">TRUE</span>
+                    </button>
+                    <button id="btn-false" class="vote-btn rounded-xl px-3 py-2.5 flex items-center justify-center gap-2">
+                        <i class="vote-icon ph-fill ph-x-circle text-2xl" aria-hidden="true"></i>
+                        <span class="text-lg sm:text-xl font-bold tracking-wide">FALSE</span>
+                    </button>
+                </div>
+
+                <div id="upvote-row" class="hidden items-center justify-end gap-2">
+                    <button id="btn-upvote" type="button" disabled class="upvote-btn inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-600 bg-slate-900/70 px-3 py-2 text-sm font-semibold text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed" aria-pressed="false">
+                        <i class="ph-fill ph-arrow-fat-up text-lg" aria-hidden="true"></i>
+                        <span id="upvote-label">Upvote for discussion</span>
+                    </button>
+                    <p id="upvote-hint" class="sr-only">Answer True or False first, then upvote if this should come up in the meeting.</p>
+                </div>
+
+                <div id="nav-row" class="flex items-center justify-end gap-3">
+                    <button id="next-btn" class="shrink-0 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-medium py-2.5 px-4 rounded-xl border border-slate-700 flex items-center gap-2">
+                        <span id="next-btn-text">Next</span> <i class="ph ph-caret-right"></i>
+                    </button>
+                </div>
+
+                <div id="review-panel" class="hidden glass-panel rounded-2xl p-4 sm:p-6 flex-col gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2"><i class="ph ph-list-checks text-indigo-400"></i> Review your answers</h3>
+                        <p id="review-summary" class="text-sm text-slate-300 mt-1"></p>
+                    </div>
+                    <div id="review-unanswered" class="space-y-2"></div>
+                    <button id="revisit-btn" type="button" class="hidden w-full sm:w-auto self-start bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 font-semibold py-3 sm:py-2.5 px-5 rounded-xl border border-amber-500/40 items-center justify-center gap-2">
+                        <i class="ph ph-arrow-counter-clockwise"></i> <span id="revisit-btn-text">Revisit unanswered</span>
+                    </button>
+                </div>
+
+                <div id="improve-panel" class="hidden glass-panel rounded-2xl p-4 sm:p-6 flex-col gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2"><i class="ph ph-lightbulb text-amber-300"></i> Before you submit</h3>
+                        <p class="text-sm text-slate-300 mt-2">What kind of improvement would you like to see after 3 to 4 weeks time?</p>
+                        <p class="text-xs text-slate-400 mt-1">Use bullet points if you have more than one idea. Your name is kept with these notes for the host export.</p>
+                    </div>
+                    <label class="block">
+                        <span class="sr-only">Improvement notes</span>
+                        <textarea id="improve-input" rows="6" maxlength="2000" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="- Faster feedback on blocked work&#10;- Clearer definition of done&#10;- ..."></textarea>
+                    </label>
+                    <p id="improve-error" class="hidden text-sm text-rose-300">Add at least one improvement note before submitting.</p>
+                </div>
+
+                <div id="submit-row" class="hidden flex-col items-center gap-2">
+                    <button id="submit-answers" disabled class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3.5 sm:py-3 px-8 rounded-xl shadow-lg shadow-indigo-500/30">Submit answers</button>
+                    <p id="submit-status" class="text-xs text-slate-400 text-center"></p>
+                </div>
+
+                <div id="results" class="hidden space-y-4">
+                    <div id="export-row" class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-base font-semibold text-white flex items-center gap-2"><i class="ph ph-download-simple text-indigo-300"></i> Export poll results</h3>
+                            <p class="text-xs text-slate-400 mt-1">Includes participant names, answers, upvotes, and improvement notes.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="export-summary-csv" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium py-2.5 px-4 rounded-xl border border-slate-700 text-sm">Summary CSV</button>
+                            <button id="export-answers-csv" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium py-2.5 px-4 rounded-xl border border-slate-700 text-sm">Answers CSV</button>
+                            <button id="export-improvements-csv" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium py-2.5 px-4 rounded-xl border border-slate-700 text-sm">Improvements CSV</button>
+                            <button id="export-xlsx" type="button" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl text-sm">Download XLSX</button>
+                        </div>
+                    </div>
+                    <details id="questions-section" class="results-section glass-panel rounded-2xl p-4 sm:p-6" open>
+                        <summary class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                            <span class="flex items-center gap-2 text-lg font-semibold text-white">
+                                <i class="ph ph-caret-right chevron text-slate-400"></i>
+                                Poll questions
+                            </span>
+                            <span class="flex flex-wrap items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-800 border border-slate-700 px-2.5 py-1 text-xs font-medium text-slate-300">
+                                    <i class="ph ph-check-circle text-green-400"></i>
+                                    <span id="completion-summary"></span>
+                                </span>
+                                <span id="discuss-summary" class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"></span>
+                            </span>
+                        </summary>
+                        <div class="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-4 text-xs text-slate-400">
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-green-500"></span>True</span>
+                                <span class="flex items-center gap-1.5"><span class="bar-false w-3 h-3 rounded-sm"></span>False</span>
+                                <span class="flex items-center gap-1.5"><i class="ph-fill ph-arrow-fat-up text-amber-300"></i>Upvotes</span>
+                                <span>Live totals; export includes names</span>
+                            </div>
+                            <label class="flex items-center gap-2 text-sm text-slate-300">
+                                <span class="shrink-0">Sort by</span>
+                                <select id="question-sort" class="flex-grow sm:flex-grow-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="upvote-desc">Most upvoted</option>
+                                    <option value="false-desc">False</option>
+                                    <option value="true-desc">True</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div id="question-results" class="mt-4 space-y-2"></div>
+                    </details>
+                    <details id="improvements-section" class="results-section glass-panel rounded-2xl p-4 sm:p-6" open>
+                        <summary class="flex items-center gap-2 text-lg font-semibold text-white">
+                            <i class="ph ph-caret-right chevron text-slate-400"></i>
+                            Improvements
+                            <span id="improvements-count" class="ml-2 bg-slate-800 text-slate-300 text-xs py-1 px-2.5 rounded-full font-medium">0</span>
+                        </summary>
+                        <div id="improvements-list" class="mt-4 space-y-3"></div>
+                    </details>
+                </div>
+
+                <div id="people-board" class="hidden glass-panel rounded-2xl p-6 border border-slate-700/50 flex-grow mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i class="ph-fill ph-users-three text-slate-400"></i> Participants
+                            <span id="voter-count" class="bg-slate-800 text-slate-300 text-xs py-1 px-2.5 rounded-full ml-2">0 of 0 submitted</span>
+                        </h3>
+                    </div>
+                    <div id="participants-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TEMPLATES = [
+            {
+                id: "tepdk-retro",
+                name: "TEPDK retrospective",
+                description: "The same ten True / False statements for every host.",
+                statements: [
+                    "I believe that training has been provided sufficient for CDF deployment of TEPDK",
+                    "We know what done looks like for TEPDK",
+                    "A reference example or template was available, and I knew where to find it.",
+                    "Deploying through Toolkit and a pipeline felt like the faster way to deliver, not the slower one.",
+                    "Timelines gave us room to do things the right way, not just get data in by milestones.",
+                    "Someone in the workstreams reviews technical work before it reaches Cognite / Total Energies.",
+                    "When we're stuck, we know who to ask at Cognite and get answers quickly.",
+                    "Work starts when its prerequisites (data, parameters, analysis) are ready.",
+                    "When advice is given, we either apply it or it is clear there are good reasons not to.",
+                    "When we solve a problem, the lesson is written down where the next person will find it."
+                ]
+            }
+        ];
+
+        const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const ROOM_ID_LENGTH = 6;
+
+        function normalizeRoom(value) {
+            if (!value) return null;
+            const trimmed = String(value).trim();
+            if (!trimmed) return null;
+            // Keep legacy long ids as lowercase; short codes are uppercase.
+            if (/^rp[a-f0-9]{32}$/i.test(trimmed)) return trimmed.toLowerCase();
+            const short = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, "");
+            return short || null;
+        }
+
+        function makeRoomId(length = ROOM_ID_LENGTH) {
+            const bytes = new Uint8Array(length);
+            crypto.getRandomValues(bytes);
+            return Array.from(bytes, (byte) => ROOM_ALPHABET[byte % ROOM_ALPHABET.length]).join("");
+        }
+
+        const params = new URLSearchParams(location.search);
+        let room = normalizeRoom(params.get("room"));
+        const demoHost = params.get("host");
+        const ME = (room && demoHost) ? demoHost : (sessionStorage.getItem("retro-me") || crypto.randomUUID());
+        sessionStorage.setItem("retro-me", ME);
+        let myName = sessionStorage.getItem("retro-name") || "";
+        let selectedTemplate = TEMPLATES[0].id;
+        let createdByMe = false;
+        const STATEMENT_SECONDS = Math.max(1, Math.floor(Number(params.get("t")) || 45));
+        let viewIndex = 0;
+        let flowMode = "pass";
+        let revisitQueue = [];
+        let flowStep = 0;
+        let historyReady = false;
+        let submitting = false;
+        let historyTimer = null;
+        let timerKey = "";
+        let timerEnd = 0;
+        let timerHandle = null;
+        let timerTone = "";
+        const TIMER_RING = 2 * Math.PI * 24;
+        let thanksShown = false;
+        let questionsOpen = true;
+        let improvementsOpen = true;
+        let questionSort = "upvote-desc";
+        let improveDraft = "";
+        let source = null;
+        let seen = new Set();
+        let ops = [];
+        const pendingVotes = {};
+        const pendingUpvotes = {};
+        let sheetJsPromise = null;
+        let state = emptyState();
+
+        const loginScreen = document.getElementById("login-screen");
+        const pokerScreen = document.getElementById("poker-screen");
+        const nicknameInput = document.getElementById("nickname-input");
+        const joinBtn = document.getElementById("join-btn");
+        const joinBtnText = document.getElementById("join-btn-text");
+        const adminUserInput = document.getElementById("admin-user");
+        const adminPassInput = document.getElementById("admin-pass");
+        const loginError = document.getElementById("login-error");
+
+        if (room) {
+            joinBtnText.textContent = "Join session";
+            document.getElementById("admin-fields").classList.add("hidden");
+            document.getElementById("name-field").classList.remove("hidden");
+            const loginGreeting = document.getElementById("login-greeting");
+            loginGreeting.textContent = "Welcome to the TEPDK Retrospective!";
+            loginGreeting.classList.remove("hidden");
+            document.getElementById("login-blurb").textContent = "Thank you for joining. Enter your name below to enter the polling session. Your answers are anonymous.";
+        }
+        if (myName) nicknameInput.value = myName;
+        (room ? nicknameInput : adminUserInput).focus();
+        document.querySelectorAll("i.ph, i.ph-fill").forEach((icon) => icon.setAttribute("aria-hidden", "true"));
+
+        document.getElementById("login-form").addEventListener("submit", (event) => {
+            event.preventDefault();
+            joinOrCreate();
+        });
+        document.getElementById("btn-true").addEventListener("click", () => castVote("True"));
+        document.getElementById("btn-false").addEventListener("click", () => castVote("False"));
+        document.getElementById("btn-upvote").addEventListener("click", castUpvote);
+        document.getElementById("next-btn").addEventListener("click", advance);
+        document.getElementById("revisit-btn").addEventListener("click", () => startRevisit(unansweredIndexes(statements())));
+        document.getElementById("question-sort").addEventListener("change", (event) => {
+            questionSort = event.target.value;
+            render();
+        });
+        document.getElementById("improve-input").addEventListener("input", (event) => {
+            improveDraft = event.target.value;
+            document.getElementById("improve-error").classList.add("hidden");
+            saveFlow();
+        });
+        document.getElementById("start-poll").addEventListener("click", () => send({ t: "phase", phase: "open", id: ME }));
+        document.getElementById("finish-poll").addEventListener("click", () => send({ t: "phase", phase: "closed", id: ME }));
+        document.getElementById("submit-answers").addEventListener("click", () => {
+            if (flowMode === "review") goToImprove();
+            else submitAnswers();
+        });
+        document.getElementById("export-summary-csv").addEventListener("click", () => exportCsv("summary"));
+        document.getElementById("export-answers-csv").addEventListener("click", () => exportCsv("answers"));
+        document.getElementById("export-improvements-csv").addEventListener("click", () => exportCsv("improvements"));
+        document.getElementById("export-xlsx").addEventListener("click", exportXlsx);
+        document.getElementById("copy-link").addEventListener("click", copyInviteLink);
+        document.getElementById("share-copy").addEventListener("click", copyInviteLink);
+        document.getElementById("go-dashboard").addEventListener("click", showPokerScreen);
+        document.getElementById("show-qr").addEventListener("click", openQrOverlay);
+        document.getElementById("qr-overlay-close").addEventListener("click", closeQrOverlay);
+        document.getElementById("qr-overlay").addEventListener("click", (event) => {
+            if (event.target.id === "qr-overlay") closeQrOverlay();
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") closeQrOverlay();
+        });
+        function emptyState() {
+            return {
+                users: {},
+                votes: {},
+                upvotes: {},
+                improvements: {},
+                submitted: {},
+                adminId: null,
+                templateId: null,
+                phase: "setup",
+                phaseAt: 0,
+                controlAt: {}
+            };
+        }
+
+        function showLoginError(message) {
+            loginError.textContent = message;
+            loginError.classList.toggle("hidden", !message);
+        }
+
+        async function hashPassword(password, saltHex, iterations) {
+            const salt = new Uint8Array(saltHex.match(/../g).map((byte) => parseInt(byte, 16)));
+            const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+            const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, 256);
+            return Array.from(new Uint8Array(bits), (byte) => byte.toString(16).padStart(2, "0")).join("");
+        }
+
+        async function verifyAdmin(userId, password) {
+            const config = window.RETRO_ADMIN;
+            if (!config?.userId || !config?.salt || !config?.passwordHash) return { ok: false, reason: "Admin login is not configured yet." };
+            const hash = await hashPassword(password, config.salt, config.iterations || 200000);
+            if (userId !== config.userId || hash !== config.passwordHash) return { ok: false, reason: "Incorrect user ID or password." };
+            return { ok: true, name: config.displayName || config.userId };
+        }
+
+        async function joinOrCreate() {
+            const creating = !room;
+            let name;
+            if (creating) {
+                const userId = adminUserInput.value.trim();
+                const password = adminPassInput.value;
+                if (!userId || !password) {
+                    showLoginError("Enter your user ID and password.");
+                    return;
+                }
+                showLoginError("");
+                joinBtn.disabled = true;
+                joinBtnText.textContent = "Signing in...";
+                const result = await verifyAdmin(userId, password).catch(() => ({ ok: false, reason: "Sign in failed. Try again." }));
+                if (!result.ok) {
+                    joinBtn.disabled = false;
+                    joinBtnText.textContent = "Sign in and create session";
+                    adminPassInput.value = "";
+                    adminPassInput.focus();
+                    showLoginError(result.reason);
+                    return;
+                }
+                showLoginError("");
+                adminPassInput.value = "";
+                name = result.name;
+            } else {
+                name = nicknameInput.value.trim();
+                if (!name) {
+                    showToast("Enter your name");
+                    return;
+                }
+            }
+            myName = name;
+            sessionStorage.setItem("retro-name", name);
+            if (creating) {
+                room = makeRoomId();
+                createdByMe = true;
+                const url = new URL(location.href);
+                url.searchParams.set("room", room);
+                history.replaceState(null, "", url);
+            }
+            loadFlow();
+            joinBtn.disabled = true;
+            joinBtnText.textContent = "Connecting...";
+            loginScreen.classList.add("hidden");
+            document.getElementById("display-session-id").textContent = roomCode();
+            if (creating) showShareScreen();
+            else showPokerScreen();
+            render();
+            connect();
+            if (creating) send({ t: "create", id: ME, name: myName, template: selectedTemplate });
+            else send({ t: "join", id: ME, name: myName });
+        }
+
+        function syncBase() {
+            return String(window.RETRO_SYNC || "").replace(/\/$/, "");
+        }
+
+        function syncUrl(path) {
+            return syncBase() + path;
+        }
+
+        function connect() {
+            if (source) source.close();
+            source = new EventSource(syncUrl("/api/rooms/" + encodeURIComponent(room) + "/events"));
+            source.onopen = () => {
+                setLive("Live", "text-green-400");
+                settleHistory();
+            };
+            source.onerror = () => setLive("Reconnecting", "text-amber-400");
+            source.onmessage = (event) => {
+                settleHistory();
+                let data;
+                try { data = JSON.parse(event.data); } catch { return; }
+                const eventId = String(data.id ?? event.lastEventId ?? "");
+                if (!eventId || seen.has(eventId)) return;
+                seen.add(eventId);
+                const op = data.op;
+                if (!op || typeof op !== "object") return;
+                if (!op.at) op.at = Date.now() / 1000;
+                if (op.t === "batch" && Array.isArray(op.ops)) {
+                    for (const item of op.ops) {
+                        if (item && typeof item === "object" && item.t !== "batch") ops.push({ ...item, at: item.at || op.at });
+                    }
+                } else {
+                    ops.push(op);
+                }
+                rebuild();
+            };
+        }
+
+        function settleHistory() {
+            if (historyReady) return;
+            clearTimeout(historyTimer);
+            historyTimer = setTimeout(() => {
+                historyReady = true;
+                render();
+            }, 800);
+        }
+
+        function setLive(text, color) {
+            const el = document.getElementById("live-status");
+            el.textContent = text;
+            el.className = color;
+        }
+
+        async function send(op) {
+            op.at = Date.now() / 1000;
+            try {
+                const response = await fetch(syncUrl("/api/rooms/" + encodeURIComponent(room) + "/ops"), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(op)
+                });
+                if (!response.ok) throw new Error(String(response.status));
+            } catch (error) {
+                console.error(error);
+                showToast("Could not sync. Check the connection and try again.");
+            }
+        }
+
+        function rebuild() {
+            const next = emptyState();
+            const rank = { create: 0, join: 1, phase: 2, reset: 3, vote: 4, upvote: 5, improve: 6, submit: 7 };
+            const ordered = ops.slice().sort((a, b) => a.at - b.at || (rank[a.t] ?? 9) - (rank[b.t] ?? 9));
+            for (const op of ordered) {
+                if ((op.t === "create" || op.t === "join") && op.id && op.name) {
+                    next.users[op.id] = { name: String(op.name).slice(0, 40), at: op.at };
+                    if (op.t === "create" && !next.adminId) {
+                        next.adminId = op.id;
+                        next.templateId = TEMPLATES.some((item) => item.id === op.template) ? op.template : TEMPLATES[0].id;
+                    }
+                } else if (op.t === "phase" && (op.phase === "open" || op.phase === "closed") && op.at >= next.phaseAt) {
+                    if (!next.adminId || op.id !== next.adminId) continue;
+                    if (next.phase === "setup" && op.phase === "open") next.phase = "open";
+                    else if (next.phase === "open" && op.phase === "closed") next.phase = "closed";
+                    else continue;
+                    next.phaseAt = op.at;
+                } else if (op.t === "reset" && Number.isInteger(op.i) && next.phase === "open") {
+                    next.votes[op.i] = {};
+                    next.upvotes[op.i] = {};
+                    next.controlAt["x" + op.i] = op.at;
+                } else if (op.t === "vote" && op.id && Number.isInteger(op.i)) {
+                    if (next.phase !== "open") continue;
+                    const resetAt = next.controlAt["x" + op.i] || 0;
+                    if (op.at < resetAt) continue;
+                    next.votes[op.i] = next.votes[op.i] || {};
+                    const current = next.votes[op.i][op.id];
+                    if (!current || op.at >= current.at) {
+                        const value = op.value === "True" || op.value === "False" ? op.value : null;
+                        next.votes[op.i][op.id] = { value, at: op.at };
+                        if (!value) {
+                            next.upvotes[op.i] = next.upvotes[op.i] || {};
+                            delete next.upvotes[op.i][op.id];
+                        }
+                    }
+                } else if (op.t === "upvote" && op.id && Number.isInteger(op.i)) {
+                    if (next.phase !== "open") continue;
+                    const resetAt = next.controlAt["x" + op.i] || 0;
+                    if (op.at < resetAt) continue;
+                    next.upvotes[op.i] = next.upvotes[op.i] || {};
+                    // Keep upvote even if the matching vote SSE is still in flight.
+                    if (op.value === true) next.upvotes[op.i][op.id] = { at: op.at };
+                    else delete next.upvotes[op.i][op.id];
+                } else if (op.t === "improve" && op.id && typeof op.text === "string") {
+                    if (next.phase !== "open") continue;
+                    const text = String(op.text).trim().slice(0, 2000);
+                    if (text) next.improvements[op.id] = { text, at: op.at };
+                } else if (op.t === "submit" && op.id && next.phase === "open") {
+                    next.submitted[op.id] = op.at;
+                }
+            }
+            state = next;
+            const lines = statements();
+            if (viewIndex > lines.length - 1) viewIndex = 0;
+            render();
+        }
+
+        function statements() {
+            const id = state.templateId || selectedTemplate;
+            return (TEMPLATES.find((item) => item.id === id) || TEMPLATES[0]).statements;
+        }
+
+        function isAdmin() {
+            return state.adminId === ME || (createdByMe && !state.adminId);
+        }
+
+        function answeredCount(lines) {
+            return lines.reduce((count, _, index) => {
+                const value = myVote(index)?.value;
+                return value === "True" || value === "False" ? count + 1 : count;
+            }, 0);
+        }
+
+        function myVote(index = viewIndex) {
+            const serverVote = state.votes[index]?.[ME] || null;
+            const pendingVote = pendingVotes[index];
+            if (!pendingVote) return serverVote;
+            if (serverVote && serverVote.value === pendingVote.value) {
+                delete pendingVotes[index];
+                return serverVote;
+            }
+            return pendingVote;
+        }
+
+        function myUpvote(index = viewIndex) {
+            if (pendingUpvotes[index] !== undefined) {
+                const serverOn = Boolean(state.upvotes[index]?.[ME]);
+                if (serverOn === pendingUpvotes[index]) {
+                    delete pendingUpvotes[index];
+                    return serverOn;
+                }
+                return pendingUpvotes[index];
+            }
+            return Boolean(state.upvotes[index]?.[ME]);
+        }
+
+        function upvoteCount(index) {
+            return Object.keys(state.upvotes[index] || {}).filter((id) => id !== state.adminId).length;
+        }
+
+        function render() {
+            const lines = statements();
+            const index = Math.max(0, Math.min(lines.length - 1, viewIndex));
+            viewIndex = index;
+            const admin = isAdmin();
+            const phase = state.phase;
+            const submittedMine = Boolean(state.submitted[ME]);
+
+            const answering = !admin && phase === "open" && !submittedMine;
+            const reviewing = answering && flowMode === "review";
+            const improving = answering && flowMode === "improve";
+            const onStatement = answering && (flowMode === "pass" || flowMode === "revisit");
+
+            document.getElementById("statement-count").textContent = flowMode === "revisit"
+                ? "Revisiting statement " + (index + 1) + " of " + lines.length
+                : "Statement " + (index + 1) + " of " + lines.length;
+            document.getElementById("statement-text").textContent = lines[index];
+            document.getElementById("next-btn").disabled = !onStatement;
+            document.getElementById("next-btn-text").textContent = flowMode === "pass" && index === lines.length - 1
+                ? "Review answers"
+                : flowMode === "revisit" && revisitQueue.length <= 1 ? "Back to review" : "Next";
+
+            const role = document.getElementById("role-badge");
+            role.textContent = admin ? "Host" : "Participant";
+            role.className = "px-2 py-0.5 rounded-full " + (admin ? "bg-indigo-500/20 text-indigo-300" : "bg-slate-800 text-slate-300");
+
+            const displayName = myName || state.users[ME]?.name;
+            const headerWelcome = document.getElementById("header-welcome");
+            const hostActions = document.getElementById("host-actions");
+            const sessionMeta = document.getElementById("session-meta");
+            if (admin) {
+                headerWelcome.classList.add("hidden");
+                headerWelcome.textContent = "";
+                sessionMeta.classList.remove("hidden");
+                sessionMeta.classList.add("flex");
+                role.classList.remove("hidden");
+                hostActions.classList.remove("hidden");
+                hostActions.classList.add("flex");
+            } else {
+                headerWelcome.textContent = displayName ? "Welcome, " + displayName + "!" : "Welcome!";
+                headerWelcome.classList.remove("hidden");
+                sessionMeta.classList.add("hidden");
+                sessionMeta.classList.remove("flex");
+                role.classList.add("hidden");
+                hostActions.classList.add("hidden");
+                hostActions.classList.remove("flex");
+            }
+
+            const phaseLabel = document.getElementById("phase-label");
+            const phaseHelp = document.getElementById("phase-help");
+            const phaseBanner = document.getElementById("phase-banner");
+            const hidePhaseForAnswer = !admin && phase === "open" && !submittedMine && (onStatement || reviewing || improving);
+            if (phase === "setup") {
+                phaseLabel.textContent = "Waiting to start";
+                phaseHelp.textContent = admin ? "Share the invite link, then start polling." : "The host has not started polling yet.";
+            } else if (phase === "open") {
+                phaseLabel.textContent = "Polling is open";
+                phaseHelp.textContent = admin
+                    ? "Participants answer on their own devices. Finish polling to see totals, upvotes, improvements, and export."
+                    : submittedMine ? "Your answers have been submitted. Waiting for the host to finish polling."
+                        : improving ? "Share the improvements you want to see in 3 to 4 weeks, then submit."
+                            : reviewing ? "Revisit any unanswered statements, then continue to improvements."
+                                : "Pick True or False, then upvote if you want this discussed in the meeting.";
+            } else {
+                phaseLabel.textContent = "Polling is closed";
+                phaseHelp.textContent = admin
+                    ? "Totals, upvotes, and improvements are ready. Export CSV or XLSX for future reference. Statements over 50% False are marked Discuss."
+                    : (submittedMine ? "Your answers have been submitted." : "The host has closed polling.");
+            }
+            phaseBanner.classList.toggle("hidden", hidePhaseForAnswer);
+            document.getElementById("start-poll").classList.toggle("hidden", !(admin && phase === "setup"));
+            document.getElementById("finish-poll").classList.toggle("hidden", !(admin && phase === "open"));
+            const showQr = document.getElementById("show-qr");
+            const qrAvailable = admin && phase !== "closed";
+            showQr.classList.toggle("hidden", !qrAvailable);
+            showQr.classList.toggle("flex", qrAvailable);
+            if (!qrAvailable) closeQrOverlay();
+            const hostSummary = admin && phase === "closed";
+            const participantDone = !admin && submittedMine;
+            const thanks = document.getElementById("thanks-screen");
+            thanks.classList.toggle("hidden", !participantDone);
+            thanks.classList.toggle("flex", participantDone);
+            if (participantDone) {
+                const displayName = myName || state.users[ME]?.name;
+                const hostName = state.adminId ? state.users[state.adminId]?.name : "";
+                document.getElementById("thanks-title").textContent = displayName ? "Thank you, " + displayName + "!" : "Thank you!";
+                document.getElementById("thanks-body").textContent = "Your survey is complete. Thanks for sharing your honest feedback"
+                    + (hostName ? " with " + hostName + " and the team" : "") + " in this TEPDK retrospective.";
+                document.getElementById("thanks-detail").textContent = "You answered " + answeredCount(lines) + " of " + lines.length + " statements.";
+                if (!thanksShown) window.scrollTo(0, 0);
+                pokerScreen.classList.add("hidden");
+                pokerScreen.classList.remove("flex");
+            } else if (thanksShown) {
+                pokerScreen.classList.remove("hidden");
+                pokerScreen.classList.add("flex");
+            }
+            thanksShown = participantDone;
+            document.getElementById("statement-card").classList.toggle("hidden", !onStatement);
+            const answered = answeredCount(lines);
+            const progress = document.getElementById("answer-progress");
+            progress.classList.toggle("hidden", !onStatement);
+            document.getElementById("answer-progress-label").textContent = answered + " of " + lines.length;
+            document.getElementById("answer-progress-bar").style.width = (lines.length ? (answered / lines.length) * 100 : 0) + "%";
+            document.getElementById("answer-progress-track").setAttribute("aria-valuenow", String(answered));
+            document.getElementById("answer-progress-track").setAttribute("aria-valuemax", String(lines.length));
+            document.getElementById("nav-row").classList.toggle("hidden", !onStatement);
+            const peopleBoard = document.getElementById("people-board");
+            if (peopleBoard) {
+                if (state.adminId && !admin) peopleBoard.remove();
+                else peopleBoard.classList.toggle("hidden", !admin || hostSummary);
+            }
+
+            const vote = myVote();
+            const hasAnswer = vote?.value === "True" || vote?.value === "False";
+            const upvoted = myUpvote();
+            const upvoteBtn = document.getElementById("btn-upvote");
+            upvoteBtn.disabled = !onStatement || !hasAnswer;
+            upvoteBtn.classList.toggle("selected-upvote", upvoted);
+            upvoteBtn.setAttribute("aria-pressed", upvoted ? "true" : "false");
+            document.getElementById("upvote-label").textContent = upvoted ? "Upvoted for discussion" : "Upvote for discussion";
+            document.getElementById("upvote-hint").textContent = hasAnswer
+                ? "Upvote if you want this statement raised in the meeting after the survey."
+                : "Answer True or False first, then upvote if this should come up in the meeting.";
+            document.getElementById("btn-true").disabled = !onStatement;
+            document.getElementById("btn-false").disabled = !onStatement;
+            document.getElementById("btn-true").classList.toggle("selected-true", vote?.value === "True");
+            document.getElementById("btn-false").classList.toggle("selected-false", vote?.value === "False");
+            document.getElementById("btn-true").setAttribute("aria-pressed", vote?.value === "True" ? "true" : "false");
+            document.getElementById("btn-false").setAttribute("aria-pressed", vote?.value === "False" ? "true" : "false");
+            document.getElementById("vote-row").classList.toggle("hidden", !onStatement);
+            const upvoteRow = document.getElementById("upvote-row");
+            upvoteRow.classList.toggle("hidden", !onStatement);
+            upvoteRow.classList.toggle("flex", onStatement);
+
+            renderReview(lines, reviewing);
+            renderImprove(improving);
+            const submitRow = document.getElementById("submit-row");
+            const submitButton = document.getElementById("submit-answers");
+            const submitStatus = document.getElementById("submit-status");
+            const showSubmit = reviewing || improving;
+            submitRow.classList.toggle("hidden", !showSubmit);
+            submitRow.classList.toggle("flex", showSubmit);
+            const missing = lines.length - answered;
+            if (improving) {
+                submitButton.disabled = !historyReady || submitting;
+                submitButton.textContent = submitting ? "Submitting..." : "Submit answers";
+                submitStatus.textContent = "Your name and notes are included in the host export.";
+            } else {
+                submitButton.disabled = !reviewing || !historyReady || submitting;
+                submitButton.textContent = missing ? "Continue with " + missing + " unanswered" : "Continue to improvements";
+                submitStatus.textContent = missing ? "Unanswered statements are recorded as no vote." : "Next: share the improvements you want in 3–4 weeks.";
+            }
+
+            syncTimer(onStatement ? flowMode + ":" + index + ":" + flowStep : "");
+            saveFlow();
+            renderPeople(lines, admin);
+            renderResults(lines, admin && phase === "closed");
+        }
+
+        function renderImprove(visible) {
+            const panel = document.getElementById("improve-panel");
+            panel.classList.toggle("hidden", !visible);
+            panel.classList.toggle("flex", visible);
+            if (!visible) return;
+            const input = document.getElementById("improve-input");
+            if (input.value !== improveDraft) input.value = improveDraft;
+        }
+
+        function goToImprove() {
+            if (isAdmin() || state.phase !== "open" || state.submitted[ME] || !historyReady || submitting) return;
+            const lines = statements();
+            const missing = lines.length - answeredCount(lines);
+            if (missing && !confirm("You have " + missing + " unanswered statement" + (missing === 1 ? "" : "s") + ". They will be recorded as no vote. Continue anyway?")) return;
+            flowMode = "improve";
+            flowStep += 1;
+            render();
+            document.getElementById("improve-input").focus();
+        }
+
+        function renderReview(lines, visible) {
+            const panel = document.getElementById("review-panel");
+            panel.classList.toggle("hidden", !visible);
+            panel.classList.toggle("flex", visible);
+            if (!visible) return;
+            const list = document.getElementById("review-unanswered");
+            const revisit = document.getElementById("revisit-btn");
+            if (!historyReady) {
+                document.getElementById("review-summary").textContent = "Loading your answers...";
+                list.replaceChildren();
+                revisit.classList.add("hidden");
+                revisit.classList.remove("flex");
+                return;
+            }
+            const missing = unansweredIndexes(lines);
+            document.getElementById("review-summary").textContent = "You answered " + (lines.length - missing.length) + " of " + lines.length + " statements."
+                + (missing.length ? " Tap a statement below to answer it now." : " Everything is answered.");
+            list.replaceChildren();
+            for (const index of missing) {
+                const item = document.createElement("button");
+                item.type = "button";
+                item.className = "w-full text-left bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 flex items-start gap-3";
+                const number = document.createElement("span");
+                number.className = "shrink-0 text-xs font-semibold text-amber-300 mt-0.5";
+                number.textContent = "#" + (index + 1);
+                const text = document.createElement("span");
+                text.className = "text-sm text-slate-200";
+                text.textContent = lines[index];
+                item.append(number, text);
+                item.addEventListener("click", () => startRevisit([index]));
+                list.appendChild(item);
+            }
+            revisit.classList.toggle("hidden", !missing.length);
+            revisit.classList.toggle("flex", missing.length > 0);
+            document.getElementById("revisit-btn-text").textContent = "Revisit unanswered (" + missing.length + ")";
+        }
+
+        function unansweredIndexes(lines) {
+            return lines.map((_, index) => index).filter((index) => !myVote(index)?.value);
+        }
+
+        function advance() {
+            if (isAdmin() || state.phase !== "open" || state.submitted[ME]) return;
+            const lines = statements();
+            if (flowMode === "pass") {
+                if (viewIndex < lines.length - 1) viewIndex += 1;
+                else flowMode = "review";
+            } else if (flowMode === "revisit") {
+                revisitQueue = revisitQueue.slice(1).filter((index) => !myVote(index)?.value);
+                if (revisitQueue.length) viewIndex = revisitQueue[0];
+                else flowMode = "review";
+            } else {
+                return;
+            }
+            flowStep += 1;
+            render();
+        }
+
+        function startRevisit(indexes) {
+            if (!indexes.length) return;
+            revisitQueue = indexes.slice();
+            viewIndex = revisitQueue[0];
+            flowMode = "revisit";
+            flowStep += 1;
+            render();
+        }
+
+        function syncTimer(key) {
+            if (key === timerKey) return;
+            timerKey = key;
+            clearInterval(timerHandle);
+            timerHandle = null;
+            timerTone = "";
+            document.getElementById("timer-announce").textContent = "";
+            document.getElementById("timer-wrap").classList.toggle("hidden", !key);
+            if (!key) return;
+            timerEnd = Date.now() + STATEMENT_SECONDS * 1000;
+            tickTimer();
+            timerHandle = setInterval(tickTimer, 250);
+        }
+
+        function tickTimer() {
+            const left = Math.max(0, timerEnd - Date.now());
+            const seconds = Math.ceil(left / 1000);
+            const answered = Boolean(myVote()?.value);
+            const tone = seconds <= 5 ? "urgent" : seconds <= 15 ? "warn" : "calm";
+            const wrap = document.getElementById("timer-wrap");
+            wrap.classList.remove("timer-calm", "timer-warn", "timer-urgent");
+            wrap.classList.add("timer-" + tone);
+            wrap.classList.toggle("timer-pulse", tone === "urgent" && !answered);
+            document.getElementById("timer-label").textContent = String(seconds);
+            document.getElementById("timer-ring").style.strokeDashoffset = String(TIMER_RING * (1 - left / (STATEMENT_SECONDS * 1000)));
+            document.getElementById("timer-icon").className = "ph-fill " + (answered ? "ph-check-circle" : tone === "urgent" ? "ph-warning" : tone === "warn" ? "ph-hourglass-medium" : "ph-timer");
+            const unit = seconds === 1 ? " second" : " seconds";
+            document.getElementById("timer-title").textContent = answered
+                ? "Answer saved"
+                : tone === "urgent" ? "Hurry! " + seconds + unit + " left" : tone === "warn" ? "Pick soon, " + seconds + unit + " left" : seconds + unit + " left";
+            document.getElementById("timer-hint").textContent = answered
+                ? "Moving on in " + seconds + "s. Press Next to go now."
+                : tone === "urgent" ? "Unanswered statements move on and wait in your review list." : "Pick True or False before time runs out.";
+            if (tone !== timerTone) {
+                timerTone = tone;
+                if (!answered && tone !== "calm") document.getElementById("timer-announce").textContent = seconds + " seconds left";
+            }
+            if (left === 0) advance();
+        }
+
+        function flowStorageKey() {
+            return "retro-flow-" + room;
+        }
+
+        function loadFlow() {
+            try {
+                const saved = JSON.parse(sessionStorage.getItem(flowStorageKey()) || "null");
+                if (!saved || !["pass", "review", "revisit", "improve"].includes(saved.mode)) return;
+                flowMode = saved.mode;
+                viewIndex = Number.isInteger(saved.index) ? saved.index : 0;
+                revisitQueue = Array.isArray(saved.queue) ? saved.queue.filter(Number.isInteger) : [];
+                improveDraft = typeof saved.improve === "string" ? saved.improve.slice(0, 2000) : "";
+                if (flowMode === "revisit") {
+                    if (revisitQueue.length) viewIndex = revisitQueue[0];
+                    else flowMode = "review";
+                }
+            } catch {
+                sessionStorage.removeItem(flowStorageKey());
+            }
+        }
+
+        function saveFlow() {
+            if (!room || isAdmin()) return;
+            sessionStorage.setItem(flowStorageKey(), JSON.stringify({
+                mode: flowMode,
+                index: viewIndex,
+                queue: revisitQueue,
+                improve: improveDraft
+            }));
+        }
+
+        function renderPeople(lines, admin) {
+            const grid = document.getElementById("participants-grid");
+            if (!grid) return;
+            if (!admin || state.phase === "closed") {
+                grid.replaceChildren();
+                return;
+            }
+            const people = Object.entries(state.users)
+                .filter(([id]) => id !== state.adminId)
+                .sort((a, b) => a[1].at - b[1].at);
+            const submittedCount = people.filter(([id]) => state.submitted[id]).length;
+            document.getElementById("voter-count").textContent = submittedCount + " of " + people.length + " submitted";
+            grid.replaceChildren();
+            if (!people.length) {
+                const empty = document.createElement("p");
+                empty.className = "col-span-full text-sm text-slate-400";
+                empty.textContent = "No participants yet. Share the QR code or invite link.";
+                grid.appendChild(empty);
+                return;
+            }
+            for (const [id, person] of people) {
+                const done = Boolean(state.submitted[id]);
+                const answered = lines.filter((_, statement) => state.votes[statement]?.[id]?.value).length;
+                const card = document.createElement("div");
+                card.className = "relative bg-slate-800/80 border rounded-xl p-4 flex flex-col items-center justify-center gap-3 " + (done ? "border-green-500/40" : "border-slate-700");
+
+                const avatar = document.createElement("div");
+                avatar.className = "w-12 h-12 rounded-full flex items-center justify-center shadow-inner text-white font-bold text-lg " + (done ? "bg-green-600" : "bg-slate-700");
+                avatar.textContent = initials(person.name);
+                card.appendChild(avatar);
+
+                const name = document.createElement("h4");
+                name.className = "text-slate-200 font-semibold truncate text-sm px-1 text-center w-full";
+                name.textContent = person.name;
+                card.appendChild(name);
+
+                const progress = document.createElement("p");
+                progress.className = "text-[11px] text-slate-500";
+                progress.textContent = answered + "/" + lines.length + " answered";
+                card.appendChild(progress);
+
+                const pill = document.createElement("div");
+                if (done) {
+                    pill.className = "bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-lg text-sm font-bold";
+                    pill.textContent = "Submitted";
+                } else {
+                    pill.className = "bg-slate-900 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-sm";
+                    pill.textContent = state.phase === "open" ? "Answering" : "Joined";
+                }
+                card.appendChild(pill);
+                grid.appendChild(card);
+            }
+        }
+
+        function rememberSectionState() {
+            const questions = document.getElementById("questions-section");
+            if (questions) questionsOpen = questions.open;
+            const improvements = document.getElementById("improvements-section");
+            if (improvements) improvementsOpen = improvements.open;
+        }
+
+        function statementStats(lines) {
+            return lines.map((line, index) => {
+                const values = Object.entries(state.votes[index] || {})
+                    .filter(([id]) => id !== state.adminId)
+                    .map(([, item]) => item.value);
+                const trues = values.filter((value) => value === "True").length;
+                const falses = values.filter((value) => value === "False").length;
+                const total = trues + falses;
+                const upvotes = upvoteCount(index);
+                return {
+                    index,
+                    line,
+                    total,
+                    trues,
+                    falses,
+                    truePct: total ? (trues / total) * 100 : 0,
+                    falsePct: total ? (falses / total) * 100 : 0,
+                    upvotes,
+                    discuss: total > 0 && falses / total > 0.5
+                };
+            });
+        }
+
+        function participantRows() {
+            return Object.entries(state.users)
+                .filter(([id]) => id !== state.adminId)
+                .sort((a, b) => a[1].at - b[1].at);
+        }
+
+        function renderResults(lines, visible) {
+            const panel = document.getElementById("results");
+            rememberSectionState();
+            panel.classList.toggle("hidden", !visible);
+            if (visible) panel.parentElement.insertBefore(panel, document.getElementById("phase-banner").nextSibling);
+            document.getElementById("questions-section").open = questionsOpen;
+            document.getElementById("improvements-section").open = improvementsOpen;
+            if (!visible) return;
+
+            const participants = participantRows();
+            const completed = participants.filter(([id]) => state.submitted[id]);
+            document.getElementById("completion-summary").textContent = participants.length
+                ? completed.length + " of " + participants.length + " participants submitted"
+                : "No participants have joined yet.";
+
+            const stats = statementStats(lines);
+            const discussCount = stats.filter((item) => item.discuss).length;
+            const discussSummary = document.getElementById("discuss-summary");
+            discussSummary.textContent = discussCount
+                ? discussCount + " to discuss"
+                : "None over 50% False";
+            discussSummary.className = "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border "
+                + (discussCount ? "bg-red-500/15 border-red-500/40 text-red-300" : "bg-slate-800 border-slate-700 text-slate-400");
+
+            const sorted = stats.slice().sort((a, b) => {
+                if (questionSort === "upvote-desc") {
+                    return (b.upvotes - a.upvotes) || a.index - b.index;
+                }
+                const sortKey = questionSort === "false-desc" ? "falsePct" : "truePct";
+                if (!a.total !== !b.total) return a.total ? -1 : 1;
+                return (b[sortKey] - a[sortKey]) || a.index - b.index;
+            });
+            const allowedSorts = ["upvote-desc", "false-desc", "true-desc"];
+            if (!allowedSorts.includes(questionSort)) questionSort = "upvote-desc";
+            document.getElementById("question-sort").value = questionSort;
+
+            const questions = document.getElementById("question-results");
+            questions.replaceChildren();
+            for (const item of sorted) {
+                const row = document.createElement("div");
+                row.dataset.statement = String(item.index + 1);
+                row.className = "border rounded-xl px-4 py-3 " + (item.discuss ? "border-red-500/60 bg-red-500/10" : "border-slate-700 bg-slate-900/70");
+
+                const top = document.createElement("div");
+                top.className = "flex items-start justify-between gap-3";
+                const title = document.createElement("p");
+                title.className = "text-sm text-slate-200";
+                title.textContent = (item.index + 1) + ". " + item.line;
+                top.appendChild(title);
+                const badges = document.createElement("div");
+                badges.className = "shrink-0 flex flex-col items-end gap-1";
+                if (item.upvotes) {
+                    const up = document.createElement("span");
+                    up.className = "inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs font-semibold px-2 py-0.5";
+                    up.textContent = item.upvotes + (item.upvotes === 1 ? " upvote" : " upvotes");
+                    badges.appendChild(up);
+                }
+                if (item.discuss) {
+                    const badge = document.createElement("span");
+                    badge.className = "discuss-badge inline-flex items-center gap-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-semibold px-2 py-0.5";
+                    badge.textContent = "Discuss";
+                    badges.appendChild(badge);
+                }
+                if (badges.childNodes.length) top.appendChild(badges);
+
+                const bar = document.createElement("div");
+                bar.className = "mt-3 h-3 rounded-full bg-slate-800 overflow-hidden flex";
+                const trueFill = document.createElement("div");
+                trueFill.className = "h-full bg-green-500";
+                trueFill.style.width = item.truePct + "%";
+                const falseFill = document.createElement("div");
+                falseFill.className = "bar-false h-full";
+                falseFill.style.width = item.falsePct + "%";
+                bar.append(trueFill, falseFill);
+
+                const footer = document.createElement("div");
+                footer.className = "mt-2 flex items-center justify-between gap-3 text-xs";
+                if (item.total) {
+                    const pcts = document.createElement("span");
+                    const trueLabel = document.createElement("span");
+                    trueLabel.className = "text-green-400 font-semibold";
+                    trueLabel.textContent = "True " + Math.round(item.truePct) + "%";
+                    const falseLabel = document.createElement("span");
+                    falseLabel.className = "text-red-400 font-semibold ml-4";
+                    falseLabel.textContent = "False " + Math.round(item.falsePct) + "%";
+                    pcts.append(trueLabel, falseLabel);
+                    const count = document.createElement("span");
+                    count.className = "text-slate-500";
+                    count.textContent = item.total + (item.total === 1 ? " response" : " responses");
+                    footer.append(pcts, count);
+                } else {
+                    const none = document.createElement("span");
+                    none.className = "text-slate-500";
+                    none.textContent = "No responses";
+                    footer.appendChild(none);
+                }
+                row.append(top, bar, footer);
+                questions.appendChild(row);
+            }
+
+            const notes = completed
+                .map(([id, person]) => ({ name: person.name, text: state.improvements[id]?.text || "" }))
+                .filter((item) => item.text);
+            document.getElementById("improvements-count").textContent = String(notes.length);
+            const list = document.getElementById("improvements-list");
+            list.replaceChildren();
+            if (!notes.length) {
+                const empty = document.createElement("p");
+                empty.className = "text-sm text-slate-400";
+                empty.textContent = "No improvement notes submitted yet.";
+                list.appendChild(empty);
+                return;
+            }
+            for (const note of notes) {
+                const card = document.createElement("div");
+                card.className = "border border-slate-700 rounded-xl px-4 py-3 bg-slate-900/70";
+                const name = document.createElement("p");
+                name.className = "text-sm font-semibold text-indigo-200";
+                name.textContent = note.name;
+                const text = document.createElement("p");
+                text.className = "mt-2 text-sm text-slate-200 whitespace-pre-wrap";
+                text.textContent = note.text;
+                card.append(name, text);
+                list.appendChild(card);
+            }
+        }
+
+        function initials(name) {
+            const parts = String(name || "?").trim().split(/\s+/).slice(0, 2);
+            return parts.map((part) => part[0] || "").join("").toUpperCase() || "?";
+        }
+
+        async function submitAnswers() {
+            if (isAdmin() || state.phase !== "open" || state.submitted[ME] || !historyReady || submitting) return;
+            if (flowMode !== "improve") {
+                goToImprove();
+                return;
+            }
+            const text = improveDraft.trim();
+            if (!text) {
+                document.getElementById("improve-error").classList.remove("hidden");
+                document.getElementById("improve-input").focus();
+                return;
+            }
+            document.getElementById("improve-error").classList.add("hidden");
+            submitting = true;
+            render();
+            await send({ t: "improve", id: ME, text: text.slice(0, 2000) });
+            await send({ t: "submit", id: ME });
+            submitting = false;
+            showToast("Answers submitted");
+            render();
+        }
+
+        function castVote(value) {
+            if (state.phase !== "open" || state.submitted[ME]) return;
+            const current = myVote();
+            const nextValue = current?.value === value ? null : value;
+            pendingVotes[viewIndex] = { value: nextValue };
+            if (!nextValue && myUpvote()) {
+                pendingUpvotes[viewIndex] = false;
+                send({ t: "upvote", id: ME, i: viewIndex, value: false });
+            }
+            render();
+            send({ t: "vote", id: ME, i: viewIndex, value: nextValue });
+        }
+
+        function castUpvote() {
+            if (state.phase !== "open" || state.submitted[ME]) return;
+            const vote = myVote();
+            if (vote?.value !== "True" && vote?.value !== "False") return;
+            const next = !myUpvote();
+            pendingUpvotes[viewIndex] = next;
+            render();
+            send({ t: "upvote", id: ME, i: viewIndex, value: next });
+        }
+
+        function csvEscape(value) {
+            const text = String(value ?? "");
+            if (/[",\n\r]/.test(text)) return '"' + text.replaceAll('"', '""') + '"';
+            return text;
+        }
+
+        function downloadBlob(filename, blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function exportPrefix() {
+            return "tepdk-retro-" + roomCode().toLowerCase();
+        }
+
+        function buildSummaryRows(lines) {
+            const stats = statementStats(lines);
+            return [
+                ["Statement #", "Statement", "True count", "False count", "True %", "False %", "Upvotes", "Discuss"],
+                ...stats.map((item) => [
+                    item.index + 1,
+                    item.line,
+                    item.trues,
+                    item.falses,
+                    item.total ? Math.round(item.truePct) : "",
+                    item.total ? Math.round(item.falsePct) : "",
+                    item.upvotes,
+                    item.discuss ? "Yes" : "No"
+                ])
+            ];
+        }
+
+        function buildAnswerRows(lines) {
+            const rows = [["Name", "Statement #", "Statement", "Answer", "Upvoted"]];
+            for (const [id, person] of participantRows()) {
+                for (let index = 0; index < lines.length; index += 1) {
+                    const answer = state.votes[index]?.[id]?.value || "";
+                    const upvoted = Boolean(state.upvotes[index]?.[id]);
+                    rows.push([person.name, index + 1, lines[index], answer, upvoted ? "Yes" : "No"]);
+                }
+            }
+            return rows;
+        }
+
+        function buildImprovementRows() {
+            const rows = [["Name", "Improvement notes"]];
+            for (const [id, person] of participantRows()) {
+                const text = state.improvements[id]?.text;
+                if (text) rows.push([person.name, text]);
+            }
+            return rows;
+        }
+
+        function rowsToCsv(rows) {
+            return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+        }
+
+        function exportCsv(kind) {
+            if (!isAdmin() || state.phase !== "closed") return;
+            const lines = statements();
+            const map = {
+                summary: { rows: buildSummaryRows(lines), name: exportPrefix() + "-summary.csv" },
+                answers: { rows: buildAnswerRows(lines), name: exportPrefix() + "-answers.csv" },
+                improvements: { rows: buildImprovementRows(), name: exportPrefix() + "-improvements.csv" }
+            };
+            const item = map[kind];
+            if (!item) return;
+            downloadBlob(item.name, new Blob([rowsToCsv(item.rows)], { type: "text/csv;charset=utf-8" }));
+            showToast("Downloaded " + item.name);
+        }
+
+        function loadSheetJs() {
+            if (window.XLSX) return Promise.resolve(window.XLSX);
+            if (sheetJsPromise) return sheetJsPromise;
+            sheetJsPromise = new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+                script.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error("SheetJS missing"));
+                script.onerror = () => reject(new Error("SheetJS failed to load"));
+                document.head.appendChild(script);
+            });
+            return sheetJsPromise;
+        }
+
+        async function exportXlsx() {
+            if (!isAdmin() || state.phase !== "closed") return;
+            try {
+                const XLSX = await loadSheetJs();
+                const lines = statements();
+                const book = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(buildSummaryRows(lines)), "Summary");
+                XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(buildAnswerRows(lines)), "Answers");
+                XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(buildImprovementRows()), "Improvements");
+                const filename = exportPrefix() + "-results.xlsx";
+                XLSX.writeFile(book, filename);
+                showToast("Downloaded " + filename);
+            } catch (error) {
+                console.error(error);
+                showToast("Could not build the XLSX file. Use CSV instead.");
+            }
+        }
+
+        function roomCode() {
+            if (!room) return "";
+            // Short room ids are already the share code; legacy rp… ids keep the last 6.
+            return /^rp[a-f0-9]{32}$/i.test(room) ? room.slice(-6).toUpperCase() : room.toUpperCase();
+        }
+
+        function showShareScreen() {
+            const share = document.getElementById("share-screen");
+            document.getElementById("share-room-code").textContent = roomCode();
+            document.getElementById("share-url").value = inviteUrl();
+            renderQr(document.getElementById("share-qr"), inviteUrl());
+            share.classList.remove("hidden");
+            share.classList.add("flex");
+        }
+
+        function showPokerScreen() {
+            const share = document.getElementById("share-screen");
+            share.classList.add("hidden");
+            share.classList.remove("flex");
+            pokerScreen.classList.remove("hidden");
+            pokerScreen.classList.add("flex");
+        }
+
+        function openQrOverlay() {
+            const overlay = document.getElementById("qr-overlay");
+            document.getElementById("qr-overlay-code").textContent = roomCode();
+            document.getElementById("qr-overlay-url").textContent = inviteUrl();
+            renderQr(document.getElementById("qr-overlay-qr"), inviteUrl());
+            overlay.classList.remove("hidden");
+            overlay.classList.add("flex");
+            document.getElementById("qr-overlay-close").focus();
+        }
+
+        function closeQrOverlay() {
+            const overlay = document.getElementById("qr-overlay");
+            overlay.classList.add("hidden");
+            overlay.classList.remove("flex");
+        }
+
+        function inviteUrl() {
+            return location.origin + location.pathname + "?room=" + encodeURIComponent(room);
+        }
+
+        function renderQr(container, url) {
+            if (typeof qrcode !== "function") {
+                container.innerHTML = "";
+                const notice = document.createElement("p");
+                notice.className = "h-full flex items-center justify-center text-center text-sm text-slate-600 p-4";
+                notice.textContent = "QR code unavailable, share the link instead.";
+                container.appendChild(notice);
+                return;
+            }
+            const qr = qrcode(0, "M");
+            qr.addData(url);
+            qr.make();
+            container.innerHTML = qr.createSvgTag({ cellSize: 8, margin: 2, scalable: true });
+        }
+
+        function copyInviteLink() {
+            const text = inviteUrl();
+            if (navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast("Invite link copied"));
+                return;
+            }
+            const area = document.createElement("textarea");
+            area.value = text;
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand("copy");
+            area.remove();
+            showToast("Invite link copied");
+        }
+
+        function showToast(message) {
+            document.getElementById("toast-message").textContent = message;
+            const toast = document.getElementById("toast");
+            toast.classList.remove("opacity-0", "pointer-events-none", "translate-y-[-20px]");
+            setTimeout(() => toast.classList.add("opacity-0", "pointer-events-none", "translate-y-[-20px]"), 3000);
+        }
+
+        if (room && demoHost) {
+            myName = "Survey Admin";
+            sessionStorage.setItem("retro-name", myName);
+            loginScreen.classList.add("hidden");
+            document.getElementById("display-session-id").textContent = roomCode();
+            showPokerScreen();
+            render();
+            connect();
+        }
+    </script>
+</body>
+</html>
